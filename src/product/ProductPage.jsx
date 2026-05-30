@@ -12,28 +12,16 @@ function ProductPage() {
   const { t } = useLang();
   const { cart, addToCart, removeFromCart, totalItems } = useCart();
 
-  const [baseProduct, setBaseProduct] = useState(null);
-  const [selectedId, setSelectedId] = useState(null);
+  const [product, setProduct] = useState(null);
+  const [selectedVariantIdx, setSelectedVariantIdx] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const local = allProducts.find(p => String(p.id) === String(id));
-    if (local) {
-      setBaseProduct(local);
-      setSelectedId(local.id);
-      setLoading(false);
-      return;
-    }
+    if (local) { setProduct(local); setLoading(false); return; }
     getProductById(id)
-      .then(p => {
-        setBaseProduct(p || null);
-        setSelectedId(p?.id || null);
-        setLoading(false);
-      })
-      .catch(() => {
-        setBaseProduct(null);
-        setLoading(false);
-      });
+      .then(p => { setProduct(p || null); setLoading(false); })
+      .catch(() => { setProduct(null); setLoading(false); });
   }, [id]);
 
   if (loading) return (
@@ -44,7 +32,7 @@ function ProductPage() {
     </div>
   );
 
-  if (!baseProduct) return (
+  if (!product) return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
       <div style={{ fontSize: 48 }}>🌾</div>
       <div style={{ fontSize: 16, fontWeight: 600, color: "#3b1f0e" }}>Product not found</div>
@@ -52,24 +40,34 @@ function ProductPage() {
     </div>
   );
 
-  // Find all weight variants of the same product (same nameKey + subCategory)
-  const variants = allProducts.filter(p =>
-    p.nameKey === baseProduct.nameKey &&
-    p.category === baseProduct.category &&
-    (p.subCategory === baseProduct.subCategory || (!p.subCategory && !baseProduct.subCategory))
-  );
+  // Use variants array if available, else fall back to base product as single variant
+  const variants = product.variants?.length
+    ? product.variants
+    : [{ weight: product.weight, price: product.price, perKgPrice: product.perKgPrice }];
 
-  // Currently selected variant
-  const raw = variants.find(v => v.id === selectedId) || baseProduct;
+  const selected = variants[selectedVariantIdx] || variants[0];
 
-  const cartItem = cart.find(i => i.id === raw.id);
+  // Cart key: product id + weight so each weight is tracked separately
+  const cartKey = `${product.id}_${selected.weight}`;
+  const cartItem = cart.find(i => i.id === cartKey);
   const qty = cartItem?.qty || 0;
 
-  const productType = raw.category === "basmati" ? "Basmati Rice"
-    : raw.category === "millets" ? "Millet"
+  const productName = t[product.nameKey] || product.name || product.nameKey;
+  const productType = product.category === "basmati" ? "Basmati Rice"
+    : product.category === "millets" ? "Millet"
     : "Non-Basmati Rice";
 
-  const productName = t[raw.nameKey] || raw.name || raw.nameKey;
+  const handleAdd = () => addToCart({
+    ...product,
+    id: cartKey,
+    name: productName,
+    weight: selected.weight,
+    price: selected.price,
+    perKgPrice: selected.perKgPrice,
+    perKg: `₹${selected.perKgPrice}/kg`,
+  });
+
+  const handleRemove = () => removeFromCart(cartKey);
 
   return (
     <div className="app-container" style={{ background: "#faf8f5", minHeight: "100vh" }}>
@@ -81,8 +79,8 @@ function ProductPage() {
 
       {/* Product Image */}
       <div style={{ margin: "12px 16px", borderRadius: 16, overflow: "hidden", background: "#f0ece8", height: 240, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        {(raw.imageUrl || raw.image || raw.img) ? (
-          <img src={raw.imageUrl || raw.image || raw.img} alt={productName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        {(product.imageUrl || product.image || product.img) ? (
+          <img src={product.imageUrl || product.image || product.img} alt={productName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         ) : (
           <div style={{ fontSize: 64 }}>🌾</div>
         )}
@@ -91,45 +89,43 @@ function ProductPage() {
       {/* Product Info */}
       <div style={{ padding: "0 16px 180px" }}>
         <div style={{ fontSize: 11, color: "#888", fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>{productType}</div>
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: "#3b1f0e", marginBottom: 12, lineHeight: 1.2 }}>{productName}</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 800, color: "#3b1f0e", marginBottom: 14, lineHeight: 1.2 }}>{productName}</h1>
 
         {/* Weight dropdown */}
-        {variants.length > 0 && (
-          <div style={{ marginBottom: 14 }}>
-            <p style={{ fontSize: 12, fontWeight: 600, color: "#888", marginBottom: 6 }}>Select Weight</p>
-            <div style={{ position: "relative", display: "inline-block", width: "100%" }}>
-              <select
-                value={selectedId}
-                onChange={e => setSelectedId(e.target.value)}
-                style={{
-                  width: "100%", padding: "11px 36px 11px 14px",
-                  border: "1.5px solid #d0c8c0", borderRadius: 24,
-                  fontSize: 14, fontWeight: 700, color: "#3b1f0e",
-                  background: "#fff", cursor: "pointer",
-                  appearance: "none", WebkitAppearance: "none",
-                  fontFamily: "var(--font-body)",
-                  boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
-                }}
-              >
-                {variants.map(v => (
-                  <option key={v.id} value={v.id}>
-                    {v.weight}  —  ₹{v.price}  (₹{v.perKgPrice}/kg)
-                  </option>
-                ))}
-              </select>
-              <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", fontSize: 14, color: "#3b1f0e" }}>▾</span>
-            </div>
+        <div style={{ marginBottom: 14 }}>
+          <p style={{ fontSize: 12, fontWeight: 600, color: "#888", marginBottom: 6 }}>Select Weight</p>
+          <div style={{ position: "relative" }}>
+            <select
+              value={selectedVariantIdx}
+              onChange={e => setSelectedVariantIdx(Number(e.target.value))}
+              style={{
+                width: "100%", padding: "11px 36px 11px 14px",
+                border: "1.5px solid #d0c8c0", borderRadius: 24,
+                fontSize: 14, fontWeight: 700, color: "#3b1f0e",
+                background: "#fff", cursor: "pointer",
+                appearance: "none", WebkitAppearance: "none",
+                fontFamily: "var(--font-body)",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
+              }}
+            >
+              {variants.map((v, i) => (
+                <option key={i} value={i}>
+                  {v.weight}  —  ₹{v.price}  (₹{v.perKgPrice}/kg)
+                </option>
+              ))}
+            </select>
+            <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", fontSize: 14, color: "#3b1f0e" }}>▾</span>
           </div>
-        )}
+        </div>
 
         {/* Price */}
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 16 }}>
-          <span style={{ fontSize: 28, fontWeight: 800, color: "#e65100" }}>₹{raw.price}</span>
-          {raw.perKgPrice && <span style={{ fontSize: 13, color: "#aaa" }}>₹{raw.perKgPrice}/kg</span>}
+          <span style={{ fontSize: 28, fontWeight: 800, color: "#e65100" }}>₹{selected.price}</span>
+          {selected.perKgPrice && <span style={{ fontSize: 13, color: "#aaa" }}>₹{selected.perKgPrice}/kg</span>}
         </div>
 
-        {raw.description && (
-          <p style={{ fontSize: 14, color: "#555", lineHeight: 1.6, margin: "0 0 16px", background: "#fff", padding: 14, borderRadius: 10 }}>{raw.description}</p>
+        {product.description && (
+          <p style={{ fontSize: 14, color: "#555", lineHeight: 1.6, margin: "0 0 16px", background: "#fff", padding: 14, borderRadius: 10 }}>{product.description}</p>
         )}
 
         {/* Product details table */}
@@ -137,10 +133,10 @@ function ProductPage() {
           <div style={{ fontSize: 14, fontWeight: 700, color: "#3b1f0e", marginBottom: 10 }}>{t.aboutDesc || "Product Details"}</div>
           {[
             [t.type || "Type", productType],
-            ["Weight", raw.weight],
-            ["Price per kg", `₹${raw.perKgPrice}/kg`],
-            [t.shelfLife || "Shelf Life", t.shelfLifeValue || "12 months"],
-            [t.storageInstructions || "Storage", t.storageValue || "Store in a cool, dry place"],
+            ["Selected Weight", selected.weight],
+            ["Price per kg", `₹${selected.perKgPrice}/kg`],
+            [t.shelfLife || "Shelf Life", "12 months"],
+            [t.storageInstructions || "Storage", "Store in a cool, dry place"],
           ].map(([label, value]) => (
             <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid #f5f0ea", fontSize: 13 }}>
               <span style={{ color: "#888" }}>{label}</span>
@@ -162,20 +158,17 @@ function ProductPage() {
       {/* Floating Add to Cart */}
       <div style={{ position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)", width: "calc(100% - 32px)", maxWidth: 448, zIndex: 100, display: "flex", flexDirection: "column", gap: "8px", pointerEvents: "none" }}>
         {qty === 0 ? (
-          <button
-            onClick={() => addToCart({ ...raw, name: productName, qty: 1 })}
-            style={{ pointerEvents: "auto", width: "100%", padding: "14px", background: "#3b1f0e", color: "#fff", border: "none", borderRadius: 14, fontSize: 16, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 18px rgba(61,31,10,0.35)" }}
-          >
-            Add to Cart — ₹{raw.price}
+          <button onClick={handleAdd} style={{ pointerEvents: "auto", width: "100%", padding: "14px", background: "#3b1f0e", color: "#fff", border: "none", borderRadius: 14, fontSize: 16, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 18px rgba(61,31,10,0.35)" }}>
+            Add to Cart — ₹{selected.price}
           </button>
         ) : (
           <>
             <div style={{ pointerEvents: "auto", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#3b1f0e", borderRadius: 14, padding: "8px 8px 8px 16px", boxShadow: "0 4px 18px rgba(61,31,10,0.35)" }}>
-              <span style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>₹{raw.price * qty} · {qty} in cart</span>
+              <span style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>₹{selected.price * qty} · {qty} in cart</span>
               <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <button onClick={() => removeFromCart(raw.id)} style={{ width: 36, height: 36, borderRadius: 8, border: "none", background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
+                <button onClick={handleRemove} style={{ width: 36, height: 36, borderRadius: 8, border: "none", background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
                 <span style={{ color: "#fff", fontWeight: 800, fontSize: 16, minWidth: 28, textAlign: "center" }}>{qty}</span>
-                <button onClick={() => addToCart({ ...raw, name: productName })} style={{ width: 36, height: 36, borderRadius: 8, border: "none", background: "#fff", color: "#3b1f0e", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
+                <button onClick={handleAdd} style={{ width: 36, height: 36, borderRadius: 8, border: "none", background: "#fff", color: "#3b1f0e", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
               </div>
             </div>
             <button onClick={() => navigate("/cart")} style={{ pointerEvents: "auto", width: "100%", padding: "13px", background: "#5a8a3c", color: "#fff", border: "none", borderRadius: 14, fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 18px rgba(90,138,60,0.4)" }}>

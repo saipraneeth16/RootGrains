@@ -147,25 +147,46 @@ function OrdersView({ orders, onStatusUpdate }) {
 }
 
 function ProductsView({ products, onAdd, onDelete, onUpdate }) {
-  const emptyForm = { name: "", category: "non-basmati", weight: "", price: "", stock: "", description: "", imageUrl: "", active: true };
+  const emptyForm = { name: "", category: "non-basmati", subCategory: "", stock: "", description: "", imageUrl: "", active: true };
+  const emptyVariant = { weight: "", price: "", perKgPrice: "" };
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [variants, setVariants] = useState([{ ...emptyVariant }]);
   const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState("");
   const inp = { width: "100%", padding: "9px 12px", border: "1.5px solid #ddd", borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box", fontFamily: "inherit" };
   const lbl = { fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4, display: "block" };
 
+  const addVariantRow = () => setVariants(v => [...v, { ...emptyVariant }]);
+  const removeVariantRow = (i) => setVariants(v => v.filter((_, idx) => idx !== i));
+  const updateVariant = (i, field, val) => setVariants(v => v.map((row, idx) => idx === i ? { ...row, [field]: val } : row));
+
   const handleSubmit = async () => {
-    if (!form.name || !form.price) return alert("Name and price are required.");
+    if (!form.name) return alert("Product name is required.");
+    if (variants.length === 0 || !variants[0].weight || !variants[0].price) return alert("Add at least one weight variant with weight and price.");
     setSaving(true);
-    const data = { ...form, price: Number(form.price), stock: Number(form.stock) || 0 };
+    const cleanVariants = variants.map(v => ({
+      weight: v.weight,
+      price: Number(v.price),
+      perKgPrice: Number(v.perKgPrice) || 0,
+    }));
+    const data = {
+      ...form,
+      stock: Number(form.stock) || 0,
+      // Use first variant as the default price/weight shown on cards
+      weight: cleanVariants[0].weight,
+      price: cleanVariants[0].price,
+      perKgPrice: cleanVariants[0].perKgPrice,
+      variants: cleanVariants,
+    };
     if (editId) { await onUpdate(editId, data); } else { await onAdd(data); }
-    setForm(emptyForm); setPreview(""); setShowForm(false); setEditId(null); setSaving(false);
+    setForm(emptyForm); setVariants([{ ...emptyVariant }]); setPreview(""); setShowForm(false); setEditId(null); setSaving(false);
   };
 
   const startEdit = (p) => {
-    setForm({ name: p.name || "", category: p.category || "non-basmati", weight: p.weight || "", price: p.price || "", stock: p.stock || "", description: p.description || "", imageUrl: p.imageUrl || p.image || "", active: p.active !== false });
+    setForm({ name: p.name || "", category: p.category || "non-basmati", subCategory: p.subCategory || "", stock: p.stock || "", description: p.description || "", imageUrl: p.imageUrl || p.image || "", active: p.active !== false });
+    setVariants(p.variants?.length ? p.variants.map(v => ({ weight: v.weight, price: String(v.price), perKgPrice: String(v.perKgPrice || "") })) : [{ weight: p.weight || "", price: String(p.price || ""), perKgPrice: String(p.perKgPrice || "") }]);
     setPreview(p.imageUrl || p.image || ""); setEditId(p.id); setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -174,18 +195,38 @@ function ProductsView({ products, onAdd, onDelete, onUpdate }) {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <h2 style={{ fontSize: 22, fontWeight: 700, color: "#3b1f0e" }}>Products</h2>
-        <button onClick={() => { setShowForm(!showForm); setEditId(null); setForm(emptyForm); setPreview(""); }} style={{ padding: "9px 18px", background: "#3b1f0e", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, cursor: "pointer", fontWeight: 600 }}>{showForm ? "✕ Cancel" : "+ Add Product"}</button>
+        <button onClick={() => { setShowForm(!showForm); setEditId(null); setForm(emptyForm); setVariants([{ ...emptyVariant }]); setPreview(""); }} style={{ padding: "9px 18px", background: "#3b1f0e", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, cursor: "pointer", fontWeight: 600 }}>{showForm ? "✕ Cancel" : "+ Add Product"}</button>
       </div>
       {showForm && (
         <div style={{ background: "#fff", borderRadius: 12, padding: 24, marginBottom: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}>
           <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: "#3b1f0e" }}>{editId ? "Edit Product" : "Add New Product"}</h3>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <div><label style={lbl}>Product Name *</label><input style={inp} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Sona Masoorie Rice" /></div>
-            <div><label style={lbl}>Category</label><select style={inp} value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}><option value="non-basmati">Non-Basmati Rice</option><option value="basmati">Basmati Rice</option><option value="millets">Millets</option></select></div>
-            <div><label style={lbl}>Weight / Size</label><input style={inp} value={form.weight} onChange={e => setForm(f => ({ ...f, weight: e.target.value }))} placeholder="e.g. 5 kg" /></div>
-            <div><label style={lbl}>Price (₹) *</label><input style={inp} type="number" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} placeholder="e.g. 350" /></div>
+            <div><label style={lbl}>Product Name *</label><input style={inp} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Sona Masoorie Raw Rice" /></div>
+            <div><label style={lbl}>Category</label>
+              <select style={inp} value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
+                <option value="non-basmati">Non-Basmati Rice</option>
+                <option value="basmati">Basmati Rice</option>
+                <option value="millets">Millets</option>
+              </select>
+            </div>
+            {form.category === "non-basmati" && (
+              <div><label style={lbl}>Sub-Category</label>
+                <select style={inp} value={form.subCategory} onChange={e => setForm(f => ({ ...f, subCategory: e.target.value }))}>
+                  <option value="">— None —</option>
+                  <option value="sona-masoorie">Sona Masoorie</option>
+                  <option value="steam-rice">Steam Rice</option>
+                  <option value="raw-rice">Raw Rice</option>
+                  <option value="half-boiled">Half Boiled</option>
+                </select>
+              </div>
+            )}
             <div><label style={lbl}>Stock Quantity</label><input style={inp} type="number" value={form.stock} onChange={e => setForm(f => ({ ...f, stock: e.target.value }))} placeholder="e.g. 100" /></div>
-            <div><label style={lbl}>Active</label><select style={inp} value={form.active ? "true" : "false"} onChange={e => setForm(f => ({ ...f, active: e.target.value === "true" }))}><option value="true">Yes — Visible on store</option><option value="false">No — Hidden</option></select></div>
+            <div><label style={lbl}>Active</label>
+              <select style={inp} value={form.active ? "true" : "false"} onChange={e => setForm(f => ({ ...f, active: e.target.value === "true" }))}>
+                <option value="true">Yes — Visible on store</option>
+                <option value="false">No — Hidden</option>
+              </select>
+            </div>
             <div style={{ gridColumn: "1 / -1" }}>
               <label style={lbl}>Product Image URL</label>
               <input style={inp} value={form.imageUrl} onChange={e => { setForm(f => ({ ...f, imageUrl: e.target.value })); setPreview(e.target.value); }} placeholder="Paste image URL (https://...)" />
@@ -196,10 +237,35 @@ function ProductsView({ products, onAdd, onDelete, onUpdate }) {
               <label style={lbl}>Description</label>
               <textarea style={{ ...inp, resize: "vertical", minHeight: 80 }} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Describe the product — origin, quality, usage..." />
             </div>
+
+            {/* Weight Variants */}
+            <div style={{ gridColumn: "1 / -1" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <label style={{ ...lbl, marginBottom: 0 }}>Weight & Price Variants *</label>
+                <button onClick={addVariantRow} style={{ padding: "5px 14px", background: "#e8f5e9", color: "#2e7d32", border: "none", borderRadius: 6, fontSize: 12, cursor: "pointer", fontWeight: 700 }}>+ Add Weight</button>
+              </div>
+              <div style={{ background: "#f9f6f2", borderRadius: 10, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+                {/* Header */}
+                <div style={{ display: "grid", gridTemplateColumns: "2fr 2fr 2fr auto", gap: 8 }}>
+                  {["Weight (e.g. 5 kg)", "Price (₹)", "Per Kg Price (₹)", ""].map((h, i) => (
+                    <div key={i} style={{ fontSize: 11, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</div>
+                  ))}
+                </div>
+                {variants.map((v, i) => (
+                  <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 2fr 2fr auto", gap: 8, alignItems: "center" }}>
+                    <input style={{ ...inp, padding: "7px 10px" }} value={v.weight} onChange={e => updateVariant(i, "weight", e.target.value)} placeholder="e.g. 5 kg" />
+                    <input style={{ ...inp, padding: "7px 10px" }} type="number" value={v.price} onChange={e => updateVariant(i, "price", e.target.value)} placeholder="e.g. 275" />
+                    <input style={{ ...inp, padding: "7px 10px" }} type="number" value={v.perKgPrice} onChange={e => updateVariant(i, "perKgPrice", e.target.value)} placeholder="e.g. 55" />
+                    <button onClick={() => removeVariantRow(i)} disabled={variants.length === 1} style={{ padding: "7px 10px", background: variants.length === 1 ? "#f0ece8" : "#ffebee", color: variants.length === 1 ? "#ccc" : "#c62828", border: "none", borderRadius: 6, cursor: variants.length === 1 ? "default" : "pointer", fontWeight: 700, fontSize: 14 }}>✕</button>
+                  </div>
+                ))}
+                <div style={{ fontSize: 11, color: "#aaa", marginTop: 2 }}>The first row is the default shown on product cards. Add as many weights as this product is sold in.</div>
+              </div>
+            </div>
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
             <button onClick={handleSubmit} disabled={saving} style={{ padding: "10px 24px", background: "#3b1f0e", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, cursor: "pointer", fontWeight: 700 }}>{saving ? "Saving..." : editId ? "Update Product" : "Add Product"}</button>
-            <button onClick={() => { setShowForm(false); setEditId(null); setForm(emptyForm); setPreview(""); }} style={{ padding: "10px 18px", background: "#f0ece8", color: "#555", border: "none", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => { setShowForm(false); setEditId(null); setForm(emptyForm); setVariants([{ ...emptyVariant }]); setPreview(""); }} style={{ padding: "10px 18px", background: "#f0ece8", color: "#555", border: "none", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>Cancel</button>
           </div>
         </div>
       )}
