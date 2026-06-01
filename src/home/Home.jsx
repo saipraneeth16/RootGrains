@@ -55,10 +55,11 @@ function PincodeModal({ onClose }) {
         {/* Input */}
         <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
             maxLength={6}
             value={pincode}
-            onChange={e => { setPincode(e.target.value.slice(0, 6)); setResult(null); }}
+            onChange={e => { const val = e.target.value.replace(/\D/g, "").slice(0, 6); setPincode(val); setResult(null); }}
             onKeyDown={e => e.key === "Enter" && check()}
             placeholder="e.g. 530017"
             style={{ flex: 1, padding: "11px 14px", border: "1.5px solid #d0c8c0", borderRadius: 12, fontSize: 16, fontWeight: 600, color: "#3b1f0e", outline: "none", fontFamily: "inherit" }}
@@ -114,17 +115,21 @@ function Home() {
       <Hero />
 
       {/* Notice bar with Check here link */}
-      <div className="notice-bar" style={{ display: "flex", alignItems: "center", overflow: "hidden", position: "relative" }}>
-        <div className="notice-scroll" style={{ flex: 1 }}>
-          {t.notice}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-          {t.notice}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+      <div style={{ background: "var(--gold-pale, #f5e6c8)", borderTop: "1px solid #e8d0a0", borderBottom: "1px solid #e8d0a0", padding: "4px 0 5px" }}>
+        <div className="notice-bar" style={{ border: "none", padding: "0", marginBottom: 3 }}>
+          <div className="notice-scroll">
+            {t.notice}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            {t.notice}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          </div>
         </div>
-        <button
-          onClick={() => setShowPincodeModal(true)}
-          style={{ flexShrink: 0, background: "#3b1f0e", border: "none", borderRadius: 20, padding: "4px 12px", fontSize: 11, fontWeight: 700, color: "#fff", cursor: "pointer", marginRight: 8, whiteSpace: "nowrap", boxShadow: "0 1px 4px rgba(0,0,0,0.2)" }}
-        >
-          Check here
-        </button>
+        <div style={{ textAlign: "center" }}>
+          <button
+            onClick={() => setShowPincodeModal(true)}
+            style={{ background: "#3b1f0e", border: "none", borderRadius: 20, padding: "4px 14px", fontSize: 11, fontWeight: 700, color: "#fff", cursor: "pointer" }}
+          >
+            Check delivery here →
+          </button>
+        </div>
       </div>
 
       <Brands />
