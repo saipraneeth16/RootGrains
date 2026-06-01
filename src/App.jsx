@@ -15,6 +15,7 @@ import CategoryPage from "./category/CategoryPage";
 import BrandPage from "./brand/BrandPage";
 import BrandsPage from "./brand/BrandsPage";
 import { AdminAuthProvider } from "./admin/AdminAuthContext";
+import { ProductsProvider } from "./ProductsContext";
 import { useLang } from "./LanguageContext";
 
 function AppRoutes() {
@@ -46,7 +47,9 @@ function App() {
   return (
     <HashRouter>
       <AdminAuthProvider>
-        <AppRoutes />
+        <ProductsProvider>
+          <AppRoutes />
+        </ProductsProvider>
       </AdminAuthProvider>
     </HashRouter>
   );

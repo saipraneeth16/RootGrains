@@ -4,7 +4,7 @@ import { useState } from "react";
 import "../home/Home.css";
 import { useLang } from "../LanguageContext";
 import { useCart } from "../CartContext";
-import { allProducts } from "../data/products";
+import { useProducts } from "../ProductsContext";
 import BottomNav from "../home/BottomNav";
 import GoToCart from "../components/GoToCart";
 
@@ -104,6 +104,7 @@ export default function CategoryPage() {
   const { totalItems } = useCart();
   const [activeSub, setActiveSub] = useState("all");
 
+  const allProducts = useProducts();
   const meta = categoryMeta[slug];
   const isNonBasmati = slug === "non-basmati";
 
@@ -116,7 +117,7 @@ export default function CategoryPage() {
     );
   }
 
-  const allCatProducts = allProducts.filter(p => p.category === slug);
+  const allCatProducts = allProducts.filter(p => p.category === slug && p.active !== false);
   const filteredProducts = isNonBasmati && activeSub !== "all"
     ? allCatProducts.filter(p => p.subCategory === activeSub)
     : allCatProducts;

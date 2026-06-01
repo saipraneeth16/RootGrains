@@ -3,7 +3,7 @@ import { useState } from "react";
 import "../home/Home.css";
 import { useLang } from "../LanguageContext";
 import { useCart } from "../CartContext";
-import { allProducts } from "../data/products";
+import { useProducts } from "../ProductsContext";
 import BottomNav from "../home/BottomNav";
 import GoToCart from "../components/GoToCart";
 
@@ -102,11 +102,12 @@ export default function BrandPage() {
   const { t, lang } = useLang();
   const { totalItems } = useCart();
 
+  const allProducts = useProducts();
   const meta = brandMeta[slug];
 
   // Show brand products — match by categories the brand covers
   const products = meta
-    ? allProducts.filter(p => meta.categories.includes(p.category))
+    ? allProducts.filter(p => meta.categories.includes(p.category) && p.active !== false)
     : [];
 
   if (!meta) {

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLang } from "../LanguageContext";
 import { useCart } from "../CartContext";
-import { allProducts } from "../data/products";
+import { useProducts } from "../ProductsContext";
 
 function ProductCard({ p, t }) {
   const navigate = useNavigate();
@@ -68,9 +68,10 @@ function ProductCard({ p, t }) {
 function Products() {
   const { t } = useLang();
   const navigate = useNavigate();
+  const allProducts = useProducts();
 
-  const nonBasmati = allProducts.filter(p => p.category === "non-basmati").slice(0, 4);
-  const millets = allProducts.filter(p => p.category === "millets").slice(0, 4);
+  const nonBasmati = allProducts.filter(p => p.category === "non-basmati" && p.active !== false).slice(0, 4);
+  const millets = allProducts.filter(p => p.category === "millets" && p.active !== false).slice(0, 4);
 
   return (
     <div>
