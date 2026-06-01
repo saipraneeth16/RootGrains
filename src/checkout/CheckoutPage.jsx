@@ -129,16 +129,6 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      {/* Delivery Slot */}
-      <div style={s.section}>
-        <p style={s.sectionTitle}>{t.deliverySlot}</p>
-        <div style={s.row}>
-          {slots.map(sl => (
-            <button key={sl.key} style={s.slotBtn(slot === sl.key)} onClick={() => setSlot(sl.key)}>{sl.label}</button>
-          ))}
-        </div>
-      </div>
-
       {/* Payment */}
       <div style={s.section}>
         <p style={s.sectionTitle}>{t.paymentMethod}</p>
