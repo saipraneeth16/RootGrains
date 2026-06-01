@@ -114,19 +114,20 @@ function Home() {
       <Header />
       <Hero />
 
-      {/* Notice bar with Check here button outside on the right */}
-      <div style={{ display: "flex", alignItems: "center" }}>
-        <div className="notice-bar" style={{ flex: 1 }}>
-          <div className="notice-scroll">
-            {t.notice}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            {t.notice}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-          </div>
+      {/* Notice bar */}
+      <div className="notice-bar">
+        <div className="notice-scroll">
+          {t.notice}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          {t.notice}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         </div>
+      </div>
+      {/* Check here button below, right-aligned */}
+      <div style={{ display: "flex", justifyContent: "flex-end", padding: "4px 10px 2px" }}>
         <button
           onClick={() => setShowPincodeModal(true)}
-          style={{ flexShrink: 0, background: "#3b1f0e", border: "none", borderRadius: 20, padding: "5px 12px", fontSize: 11, fontWeight: 700, color: "#fff", cursor: "pointer", marginLeft: 8, marginRight: 6, whiteSpace: "nowrap" }}
+          style={{ background: "#3b1f0e", border: "none", borderRadius: 20, padding: "4px 12px", fontSize: 11, fontWeight: 700, color: "#fff", cursor: "pointer" }}
         >
-          Check here →
+          Check delivery here →
         </button>
       </div>
 
