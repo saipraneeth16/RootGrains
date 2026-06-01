@@ -114,22 +114,20 @@ function Home() {
       <Header />
       <Hero />
 
-      {/* Notice bar with Check here link */}
-      <div style={{ background: "var(--gold-pale, #f5e6c8)", borderTop: "1px solid #e8d0a0", borderBottom: "1px solid #e8d0a0", padding: "4px 0 5px" }}>
-        <div className="notice-bar" style={{ border: "none", padding: "0", marginBottom: 3 }}>
+      {/* Notice bar with Check here button outside on the right */}
+      <div style={{ display: "flex", alignItems: "center" }}>
+        <div className="notice-bar" style={{ flex: 1 }}>
           <div className="notice-scroll">
-            {t.notice}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            {t.notice}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            {t.notice}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            {t.notice}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
           </div>
         </div>
-        <div style={{ textAlign: "center" }}>
-          <button
-            onClick={() => setShowPincodeModal(true)}
-            style={{ background: "#3b1f0e", border: "none", borderRadius: 20, padding: "4px 14px", fontSize: 11, fontWeight: 700, color: "#fff", cursor: "pointer" }}
-          >
-            Check delivery here →
-          </button>
-        </div>
+        <button
+          onClick={() => setShowPincodeModal(true)}
+          style={{ flexShrink: 0, background: "#3b1f0e", border: "none", borderRadius: 20, padding: "5px 12px", fontSize: 11, fontWeight: 700, color: "#fff", cursor: "pointer", marginLeft: 8, marginRight: 6, whiteSpace: "nowrap" }}
+        >
+          Check here →
+        </button>
       </div>
 
       <Brands />

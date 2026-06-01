@@ -110,7 +110,7 @@ body {
 }
 .notice-scroll {
   display: inline-block; white-space: nowrap;
-  animation: scrollLeft 22s linear infinite;
+  animation: scrollLeft 14s linear infinite;
   font-size: 10px; font-weight: 600;
   color: var(--brown, #6b3a1f); letter-spacing: 0.2px;
 }
