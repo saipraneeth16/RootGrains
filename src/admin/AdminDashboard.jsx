@@ -200,9 +200,24 @@ function ProductsView({ products, onAdd, onDelete, onUpdate }) {
   };
 
   const startEdit = (p) => {
-    setForm({ name: p.name || "", category: p.category || "non-basmati", subCategory: p.subCategory || "", stock: p.stock || "", description: p.description || "", imageUrl: p.imageUrl || p.image || "", active: p.active !== false });
-    setVariants(p.variants?.length ? p.variants.map(v => ({ weight: v.weight, price: String(v.price), perKgPrice: String(v.perKgPrice || "") })) : [{ weight: p.weight || "", price: String(p.price || ""), perKgPrice: String(p.perKgPrice || "") }]);
-    setPreview(p.imageUrl || p.image || ""); setEditId(p.id); setShowForm(true);
+    setForm({
+      name: p.name || p.nameKey || "",
+      category: p.category || "non-basmati",
+      subCategory: p.subCategory || "",
+      stock: p.stock || "",
+      description: p.description || "",
+      imageUrl: p.imageUrl || p.image || p.img || "",
+      active: p.active !== false,
+    });
+    const editVariants = p.variants?.length
+      ? p.variants.map(v => ({ weight: v.weight, price: String(v.price), perKgPrice: String(v.perKgPrice || "") }))
+      : p.category === "millets"
+        ? milletVariants()
+        : riceVariants();
+    setVariants(editVariants);
+    setPreview(p.imageUrl || p.image || p.img || "");
+    setEditId(p.id);
+    setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
