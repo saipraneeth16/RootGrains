@@ -4,7 +4,7 @@ import GoToCart from "../components/GoToCart";
 import "../home/Home.css";
 import { useLang } from "../LanguageContext";
 import { useCart } from "../CartContext";
-import { allProducts } from "../data/products";
+import { useProducts } from "../ProductsContext";
 
 const recentSearches = ["sona masoori rice", "basmati rice", "ragi", "brown rice", "korra"];
 const popularSearches = ["Basmati Rice", "Foxtail Millet", "Sona Masoori", "Ragi", "Pearl Millet"];
@@ -14,30 +14,43 @@ export default function SearchPage() {
   const navigate = useNavigate();
   const { t } = useLang();
   const { cart, addToCart, removeFromCart, totalItems } = useCart();
+  const { products: allProducts } = useProducts();
 
-  const productNames = { sonaRaw: t.sonaRaw, sonaSteam: t.sonaSteam, basmatiPremium: t.basmatiPremium, basmatiAged: t.basmatiAged, foxtailMillet: t.foxtailMillet, pearlMillet: t.pearlMillet, fingerMillet: t.fingerMillet, littleMillet: t.littleMillet };
+  const getProductName = (p) => p.name || t[p.nameKey] || p.nameKey || "";
 
   const searched = query.trim().length > 0;
   const results = searched
     ? allProducts.filter(p => {
-        const name = (productNames[p.nameKey] || "").toLowerCase();
+        const name = getProductName(p).toLowerCase();
         const q = query.trim().toLowerCase();
-        return name.includes(q) || p.category === q;
+        return name.includes(q) || p.category?.includes(q);
       })
     : [];
 
   const QtyControl = ({ p }) => {
-    const name = productNames[p.nameKey] || p.nameKey;
-    const cartItem = cart.find(i => i.id === p.id);
+    const name = getProductName(p);
+    const variants = p.variants?.length
+      ? p.variants
+      : [{ weight: p.weight, price: p.price, perKgPrice: p.perKgPrice }];
+    const selected = variants[0];
+    const cartKey = `${p.id}_${selected.weight}`;
+    const cartItem = cart.find(i => i.id === cartKey);
     const qty = cartItem ? cartItem.qty : 0;
+
+    const handleAdd = (e) => {
+      e.stopPropagation();
+      addToCart({ ...p, id: cartKey, name, weight: selected.weight, price: selected.price, perKgPrice: selected.perKgPrice });
+    };
+    const handleRemove = (e) => { e.stopPropagation(); removeFromCart(cartKey); };
+
     if (qty === 0) return (
-      <button className="add-btn" onClick={e => { e.stopPropagation(); addToCart({ ...p, name, perKg: `₹${p.perKgPrice}/kg` }); }}>+</button>
+      <button className="add-btn" onClick={handleAdd}>+</button>
     );
     return (
       <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "var(--brown-dark)", borderRadius: "var(--radius-sm)", padding: "4px 12px" }} onClick={e => e.stopPropagation()}>
-        <button onClick={e => { e.stopPropagation(); removeFromCart(p.id); }} style={{ background: "none", border: "none", color: "#fff", fontSize: "16px", cursor: "pointer" }}>−</button>
+        <button onClick={handleRemove} style={{ background: "none", border: "none", color: "#fff", fontSize: "16px", cursor: "pointer" }}>−</button>
         <span style={{ color: "#fff", fontWeight: "700", fontSize: "13px" }}>{qty}</span>
-        <button onClick={e => { e.stopPropagation(); addToCart({ ...p, name, perKg: `₹${p.perKgPrice}/kg` }); }} style={{ background: "none", border: "none", color: "#fff", fontSize: "16px", cursor: "pointer" }}>+</button>
+        <button onClick={handleAdd} style={{ background: "none", border: "none", color: "#fff", fontSize: "16px", cursor: "pointer" }}>+</button>
       </div>
     );
   };
@@ -70,14 +83,15 @@ export default function SearchPage() {
         <div className="search-results">
           <p className="results-count">{results.length} {t.resultsFor} "{query}"</p>
           {results.map(p => {
-            const name = productNames[p.nameKey] || p.nameKey;
+            const name = getProductName(p);
+            const variants = p.variants?.length ? p.variants : [{ weight: p.weight, price: p.price }];
             return (
               <div key={p.id} className="result-card" onClick={() => navigate(`/product/${p.id}`)}>
-                <img src={p.img} alt={name} />
+                <img src={p.imageUrl || p.img || p.image} alt={name} />
                 <div className="result-info">
-                  <h4>{name} — {p.weight}</h4>
-                  <p className="price" style={{ color: "var(--brown-dark)" }}>₹{p.price}</p>
-                  <p className="per-kg">₹{p.perKgPrice}/kg</p>
+                  <h4>{name} — {variants[0]?.weight || p.weight}</h4>
+                  <p className="price" style={{ color: "var(--brown-dark)" }}>₹{variants[0]?.price || p.price}</p>
+                  <p className="per-kg">₹{variants[0]?.perKgPrice || p.perKgPrice}/kg</p>
                 </div>
                 <QtyControl p={p} />
               </div>
@@ -94,13 +108,14 @@ export default function SearchPage() {
           <h4>{t.tryAlternatives}</h4>
           <div className="alt-list">
             {allProducts.slice(0, 3).map(p => {
-              const name = productNames[p.nameKey] || p.nameKey;
+              const name = getProductName(p);
+              const variants = p.variants?.length ? p.variants : [{ weight: p.weight, price: p.price }];
               return (
                 <div key={p.id} className="alt-card" onClick={() => navigate(`/product/${p.id}`)}>
-                  <img src={p.img} alt={name} />
+                  <img src={p.imageUrl || p.img || p.image} alt={name} />
                   <div>
-                    <p style={{ fontSize: "12px", fontWeight: "600", color: "var(--text)" }}>{name} {p.weight}</p>
-                    <p style={{ fontSize: "13px", fontWeight: "700", color: "var(--brown-dark)" }}>₹{p.price}</p>
+                    <p style={{ fontSize: "12px", fontWeight: "600", color: "var(--text)" }}>{name} {variants[0]?.weight}</p>
+                    <p style={{ fontSize: "13px", fontWeight: "700", color: "var(--brown-dark)" }}>₹{variants[0]?.price}</p>
                   </div>
                   <QtyControl p={p} />
                 </div>

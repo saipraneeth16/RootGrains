@@ -52,7 +52,7 @@ function ProductCard({ p, t }) {
     : [{ weight: p.weight, price: p.price, perKgPrice: p.perKgPrice }];
 
   const selected = variants[selectedIdx];
-  const name = t[p.nameKey] || p.nameKey;
+  const name = p.name || t[p.nameKey] || p.nameKey;
   const cartKey = `${p.id}_${selected.weight}`;
   const cartItem = cart.find(i => i.id === cartKey);
   const qty = cartItem?.qty || 0;

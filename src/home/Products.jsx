@@ -14,7 +14,7 @@ function ProductCard({ p, t }) {
 
   const [selectedIdx, setSelectedIdx] = useState(0);
   const selected = variants[selectedIdx];
-  const productName = t[p.nameKey] || p.nameKey;
+  const productName = p.name || t[p.nameKey] || p.nameKey;
 
   const cartKey = `${p.id}_${selected.weight}`;
   const cartItem = cart.find(i => i.id === cartKey);

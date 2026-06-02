@@ -4,7 +4,6 @@ import "../home/Home.css";
 import { useLang } from "../LanguageContext";
 import { useCart } from "../CartContext";
 import { getProductById } from "../services/firestore";
-import { allProducts } from "../data/products";
 
 function ProductPage() {
   const { id } = useParams();
@@ -17,8 +16,7 @@ function ProductPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const local = allProducts.find(p => String(p.id) === String(id));
-    if (local) { setProduct(local); setLoading(false); return; }
+    // Always load from Firestore — local data has placeholder prices
     getProductById(id)
       .then(p => { setProduct(p || null); setLoading(false); })
       .catch(() => { setProduct(null); setLoading(false); });

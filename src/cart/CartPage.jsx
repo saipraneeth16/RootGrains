@@ -32,7 +32,7 @@ function CartPage() {
           <div className="cart-items">
             {cart.map(item => (
               <div key={item.id} className="cart-item">
-                <img src={item.img} alt={item.name} className="cart-item-img" />
+                <img src={item.imageUrl || item.img || item.image} alt={item.name} className="cart-item-img" />
                 <div className="cart-item-info">
                   <p className="cart-item-name">{item.name} {item.weight}</p>
                   <p className="cart-item-price">₹{item.price * item.qty}</p>
