@@ -102,7 +102,7 @@ export default function BrandPage() {
   const { t, lang } = useLang();
   const { totalItems } = useCart();
 
-  const allProducts = useProducts();
+  const { products: allProducts } = useProducts();
   const meta = brandMeta[slug];
 
   // Show brand products — match by categories the brand covers

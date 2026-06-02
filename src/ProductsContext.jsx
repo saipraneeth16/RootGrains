@@ -1,32 +1,22 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { subscribeProducts } from "./services/firestore";
-import { seedProductsIfEmpty } from "./services/firestore";
-import { allProducts as localProducts } from "./data/products";
 
 const ProductsContext = createContext([]);
 
 export function ProductsProvider({ children }) {
-  const [products, setProducts] = useState(localProducts); // start with local data instantly
-  const [seeded, setSeeded] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Seed Firestore from local data if empty (first run only)
-    seedProductsIfEmpty(localProducts).then(() => setSeeded(true));
-  }, []);
-
-  useEffect(() => {
-    if (!seeded) return;
-    // Subscribe to live Firestore products
     const unsub = subscribeProducts(firestoreProducts => {
-      if (firestoreProducts.length > 0) {
-        setProducts(firestoreProducts);
-      }
+      setProducts(firestoreProducts.filter(p => p.active !== false));
+      setLoading(false);
     });
     return () => unsub();
-  }, [seeded]);
+  }, []);
 
   return (
-    <ProductsContext.Provider value={products}>
+    <ProductsContext.Provider value={{ products, loading }}>
       {children}
     </ProductsContext.Provider>
   );

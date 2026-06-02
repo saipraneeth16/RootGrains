@@ -149,9 +149,18 @@ function OrdersView({ orders, onStatusUpdate }) {
 function ProductsView({ products, onAdd, onDelete, onUpdate }) {
   const emptyForm = { name: "", category: "non-basmati", subCategory: "", stock: "", description: "", imageUrl: "", active: true };
   const emptyVariant = { weight: "", price: "", perKgPrice: "" };
+  const riceVariants = () => [
+    { weight: "5 kg",  price: "", perKgPrice: "" },
+    { weight: "10 kg", price: "", perKgPrice: "" },
+    { weight: "25 kg", price: "", perKgPrice: "" },
+  ];
+  const milletVariants = () => [
+    { weight: "500 g", price: "", perKgPrice: "" },
+    { weight: "1 kg",  price: "", perKgPrice: "" },
+  ];
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
-  const [variants, setVariants] = useState([{ ...emptyVariant }]);
+  const [variants, setVariants] = useState(riceVariants());
   const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState("");
@@ -180,8 +189,14 @@ function ProductsView({ products, onAdd, onDelete, onUpdate }) {
       perKgPrice: cleanVariants[0].perKgPrice,
       variants: cleanVariants,
     };
-    if (editId) { await onUpdate(editId, data); } else { await onAdd(data); }
-    setForm(emptyForm); setVariants([{ ...emptyVariant }]); setPreview(""); setShowForm(false); setEditId(null); setSaving(false);
+    try {
+      if (editId) { await onUpdate(editId, data); } else { await onAdd(data); }
+      setForm(emptyForm); setVariants([{ ...emptyVariant }]); setPreview(""); setShowForm(false); setEditId(null);
+    } catch (err) {
+      console.error("Save failed:", err);
+      alert("Error saving product: " + err.message);
+    }
+    setSaving(false);
   };
 
   const startEdit = (p) => {
@@ -195,7 +210,7 @@ function ProductsView({ products, onAdd, onDelete, onUpdate }) {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <h2 style={{ fontSize: 22, fontWeight: 700, color: "#3b1f0e" }}>Products</h2>
-        <button onClick={() => { setShowForm(!showForm); setEditId(null); setForm(emptyForm); setVariants([{ ...emptyVariant }]); setPreview(""); }} style={{ padding: "9px 18px", background: "#3b1f0e", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, cursor: "pointer", fontWeight: 600 }}>{showForm ? "✕ Cancel" : "+ Add Product"}</button>
+        <button onClick={() => { setShowForm(!showForm); setEditId(null); setForm(emptyForm); setVariants(riceVariants()); setPreview(""); }} style={{ padding: "9px 18px", background: "#3b1f0e", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, cursor: "pointer", fontWeight: 600 }}>{showForm ? "✕ Cancel" : "+ Add Product"}</button>
       </div>
       {showForm && (
         <div style={{ background: "#fff", borderRadius: 12, padding: 24, marginBottom: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}>
@@ -203,7 +218,11 @@ function ProductsView({ products, onAdd, onDelete, onUpdate }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <div><label style={lbl}>Product Name *</label><input style={inp} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Sona Masoorie Raw Rice" /></div>
             <div><label style={lbl}>Category</label>
-              <select style={inp} value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
+              <select style={inp} value={form.category} onChange={e => {
+                const cat = e.target.value;
+                setForm(f => ({ ...f, category: cat, subCategory: "" }));
+                setVariants(cat === "millets" ? milletVariants() : riceVariants());
+              }}>
                 <option value="non-basmati">Non-Basmati Rice</option>
                 <option value="basmati">Basmati Rice</option>
                 <option value="millets">Millets</option>
@@ -265,7 +284,7 @@ function ProductsView({ products, onAdd, onDelete, onUpdate }) {
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
             <button onClick={handleSubmit} disabled={saving} style={{ padding: "10px 24px", background: "#3b1f0e", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, cursor: "pointer", fontWeight: 700 }}>{saving ? "Saving..." : editId ? "Update Product" : "Add Product"}</button>
-            <button onClick={() => { setShowForm(false); setEditId(null); setForm(emptyForm); setVariants([{ ...emptyVariant }]); setPreview(""); }} style={{ padding: "10px 18px", background: "#f0ece8", color: "#555", border: "none", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>Cancel</button>
+            <button onClick={() => { setShowForm(false); setEditId(null); setForm(emptyForm); setVariants(riceVariants()); setPreview(""); }} style={{ padding: "10px 18px", background: "#f0ece8", color: "#555", border: "none", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>Cancel</button>
           </div>
         </div>
       )}

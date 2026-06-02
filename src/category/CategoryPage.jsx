@@ -104,7 +104,7 @@ export default function CategoryPage() {
   const { totalItems } = useCart();
   const [activeSub, setActiveSub] = useState("all");
 
-  const allProducts = useProducts();
+  const { products: allProducts } = useProducts();
   const meta = categoryMeta[slug];
   const isNonBasmati = slug === "non-basmati";
 

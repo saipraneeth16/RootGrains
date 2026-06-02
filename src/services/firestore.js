@@ -58,9 +58,12 @@ export async function deleteProduct(id) {
 
 export async function seedProductsIfEmpty(products) {
   const snap = await getDocs(collection(db, "products"));
-  if (!snap.empty) return;
+  const existingIds = new Set(snap.docs.map(d => d.id));
+  // Seed any local product whose ID doesn't exist in Firestore yet
   for (const p of products) {
-    await setDoc(doc(db, "products", p.id), { ...p, stock: 100, active: true, createdAt: serverTimestamp() });
+    if (!existingIds.has(String(p.id))) {
+      await setDoc(doc(db, "products", String(p.id)), { ...p, stock: 100, active: true, createdAt: serverTimestamp() });
+    }
   }
 }
 
