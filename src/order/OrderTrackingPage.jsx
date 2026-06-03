@@ -66,7 +66,7 @@ export default function OrderTrackingPage() {
     <div style={{ fontFamily: "var(--font-body)", background: "var(--cream)", minHeight: "100vh" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 14px", background: "#fff", position: "sticky", top: 0, zIndex: 100, boxShadow: "var(--shadow-sm)", borderBottom: "1px solid var(--border)" }}>
-        <button className="back-btn" onClick={() => navigate("/")}>←</button>
+        <button className="back-btn" onClick={() => navigate("/profile")}>←</button>
         <span style={{ fontSize: "17px", fontWeight: "700", color: "var(--brown-dark)", fontFamily: "var(--font-display)" }}>Order Details</span>
       </div>
 
