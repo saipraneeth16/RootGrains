@@ -2,12 +2,22 @@ import { useNavigate } from "react-router-dom";
 import "../home/Home.css";
 import { useLang } from "../LanguageContext";
 import { useCart } from "../CartContext";
+import { useAuth } from "../auth/AuthContext";
 import BottomNav from "../home/BottomNav";
 
 function CartPage() {
   const { cart, addToCart, removeFromCart, deleteFromCart, subtotal } = useCart();
   const navigate = useNavigate();
   const { t } = useLang();
+  const { user } = useAuth();
+
+  const handleCheckout = () => {
+    if (!user) {
+      navigate("/login", { state: { from: "/checkout" } });
+    } else {
+      navigate("/checkout");
+    }
+  };
 
   return (
     <div className="mobile">
@@ -65,7 +75,9 @@ function CartPage() {
           </div>
 
           <div className="cart-checkout">
-            <button className="checkout-btn" onClick={() => navigate("/checkout")}>{t.proceedCheckout}</button>
+            <button className="checkout-btn" onClick={handleCheckout}>
+              {user ? t.proceedCheckout : "Login to Checkout"}
+            </button>
           </div>
         </>
       )}
