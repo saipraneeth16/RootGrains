@@ -132,11 +132,11 @@ export default function OrderTrackingPage() {
       {/* Delivery info */}
       <div style={{ background: "#fff", margin: "0 14px 14px", borderRadius: "14px", padding: "16px", border: "1px solid var(--border)" }}>
         <p style={{ fontSize: "12px", fontWeight: "800", color: "var(--brown-dark)", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "10px" }}>Delivery Info</p>
-        <p style={{ fontSize: "13px", color: "var(--text)", marginBottom: "4px" }}>📍 {order.address}, {order.city} - {order.pincode}</p>
+        <p style={{ fontSize: "13px", color: "var(--text)", marginBottom: "4px" }}>{order.address}, {order.city} - {order.pincode}</p>
         <p style={{ fontSize: "13px", color: "var(--text)", marginBottom: "4px" }}>
-          {order.deliveryType === "rapid" ? "⚡ Rapid Delivery" : "🌿 Eco Delivery"}
+          {order.deliveryType === "rapid" ? "Rapid Delivery" : "Eco Delivery"}
         </p>
-        <p style={{ fontSize: "13px", color: "var(--text)" }}>💳 {order.payment === "cod" ? "Cash on Delivery" : "Online Payment"}</p>
+        <p style={{ fontSize: "13px", color: "var(--text)" }}>{order.payment === "cod" ? "Cash on Delivery" : "Online Payment"}</p>
       </div>
 
       {/* Order items */}

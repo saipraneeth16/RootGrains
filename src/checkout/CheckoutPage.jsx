@@ -76,12 +76,15 @@ export default function CheckoutPage() {
     if (!user) navigate("/login", { state: { from: "/checkout" } });
   }, [user]);
 
-  // Load saved addresses
+  // Load saved addresses and auto-fill mobile from first address
   useEffect(() => {
     if (user) {
       getUserAddresses(user.uid).then(addrs => {
         setAddresses(addrs);
-        if (addrs.length > 0) setSelectedAddress(addrs[0]);
+        if (addrs.length > 0) {
+          setSelectedAddress(addrs[0]);
+          if (addrs[0].phone) setMobile(addrs[0].phone);
+        }
       });
     }
   }, [user]);
@@ -183,7 +186,7 @@ export default function CheckoutPage() {
             {addresses.map(addr => (
               <div
                 key={addr.id}
-                onClick={() => setSelectedAddress(addr)}
+                onClick={() => { setSelectedAddress(addr); if (addr.phone) setMobile(addr.phone); }}
                 style={{ padding: "12px 14px", borderRadius: "var(--radius-sm)", border: `2px solid ${selectedAddress?.id === addr.id ? "var(--brown-dark)" : "var(--border)"}`, background: selectedAddress?.id === addr.id ? "#f5ede4" : "#fff", marginBottom: 8, cursor: "pointer" }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

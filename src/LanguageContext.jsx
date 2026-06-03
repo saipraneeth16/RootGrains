@@ -6,7 +6,7 @@ export const translations = {
   EN: {
     profile: "Profile",
     reorder: "Reorder",
-    notice: "Caution: We currently deliver only within Visakhapatnam.",
+    notice: "⚠️  Caution: We currently deliver only within Visakhapatnam.",
     heroTitle: "Pure Grains.\nRooted in Tradition.",
     heroPara: "From our farms to your table,\ngiving you trust, taste,\nand wholesome nutrition.",
     shopNow: "SHOP NOW",

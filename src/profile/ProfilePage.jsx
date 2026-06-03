@@ -17,7 +17,7 @@ const statusColors = {
 function MenuItem({ icon, label, onClick, danger }) {
   return (
     <div onClick={onClick} style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 16px", cursor: "pointer", borderBottom: "1px solid var(--cream-3)" }}>
-      <span style={{ fontSize: "20px", width: "28px", textAlign: "center" }}>{icon}</span>
+      {icon && <span style={{ fontSize: "16px", width: "24px", textAlign: "center", color: danger ? "#c0392b" : "var(--brown-dark)", fontWeight: 700 }}>{icon}</span>}
       <span style={{ flex: 1, fontSize: "14px", fontWeight: "500", color: danger ? "#c0392b" : "var(--text)" }}>{label}</span>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
     </div>
@@ -116,15 +116,15 @@ export default function ProfilePage() {
 
       {/* Menu */}
       <div style={{ background: "#fff", marginTop: "10px" }}>
-        <MenuItem icon="→" label={t.savedAddresses} onClick={() => navigate("/saved-addresses")} />
+        <MenuItem label={t.savedAddresses} onClick={() => navigate("/saved-addresses")} />
         <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 16px", cursor: "pointer", borderBottom: "1px solid var(--cream-3)" }} onClick={toggleLang}>
-          <span style={{ fontSize: "13px", width: "28px", textAlign: "center", fontWeight: 700, color: "var(--brown-dark)" }}>EN</span>
+          <span style={{ fontSize: "13px", width: "24px", textAlign: "center", fontWeight: 800, color: "var(--brown-dark)" }}>🌐</span>
           <span style={{ flex: 1, fontSize: "14px", fontWeight: "500", color: "var(--text)" }}>{t.language}</span>
           <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--gold)", background: "var(--gold-pale)", padding: "3px 10px", borderRadius: "var(--radius-full)" }}>
             {lang === "EN" ? "English" : "తెలుగు"}
           </span>
         </div>
-        <MenuItem icon="·" label={t.notifications} onClick={() => navigate("/notifications")} />
+        <MenuItem label={t.notifications} onClick={() => navigate("/notifications")} />
         <MenuItem icon="?" label={t.helpSupport} onClick={() => window.open("https://wa.me/919999999999?text=Hi, I need help with my Root Grains order", "_blank")} />
         {user && <MenuItem icon="←" label="Log Out" onClick={handleLogout} danger />}
       </div>
