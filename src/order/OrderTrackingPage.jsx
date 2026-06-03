@@ -26,6 +26,7 @@ export default function OrderTrackingPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [order, setOrder] = useState(location.state || null);
+  const fromCheckout = location.state?.from === "checkout";
   const [loading, setLoading] = useState(!location.state);
 
   // Subscribe to real-time order status from Firestore
@@ -66,7 +67,7 @@ export default function OrderTrackingPage() {
     <div style={{ fontFamily: "var(--font-body)", background: "var(--cream)", minHeight: "100vh" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 14px", background: "#fff", position: "sticky", top: 0, zIndex: 100, boxShadow: "var(--shadow-sm)", borderBottom: "1px solid var(--border)" }}>
-        <button className="back-btn" onClick={() => navigate("/profile")}>←</button>
+        <button className="back-btn" onClick={() => navigate(fromCheckout ? "/" : "/profile")}>←</button>
         <span style={{ fontSize: "17px", fontWeight: "700", color: "var(--brown-dark)", fontFamily: "var(--font-display)" }}>Order Details</span>
       </div>
 
@@ -156,7 +157,7 @@ export default function OrderTrackingPage() {
             </div>
             {order.deliveryFee !== undefined && (
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "var(--text-muted)", marginBottom: "4px" }}>
-                <span>{order.deliveryType === "rapid" ? "⚡ Rapid Delivery" : "🌿 Eco Delivery"}</span>
+                <span>{order.deliveryType === "rapid" ? "Rapid Delivery" : "Eco Delivery"}</span>
                 <span>₹{order.deliveryFee}</span>
               </div>
             )}
@@ -184,6 +185,11 @@ export default function OrderTrackingPage() {
         <button onClick={() => navigate("/")} style={{ width: "100%", padding: "14px", background: "var(--brown-dark)", color: "#fff", border: "none", borderRadius: "14px", fontSize: "15px", fontWeight: "700", cursor: "pointer", fontFamily: "var(--font-body)" }}>
           Continue Shopping
         </button>
+        {!fromCheckout && (
+          <button onClick={() => navigate("/profile")} style={{ width: "100%", padding: "12px", background: "transparent", color: "var(--brown-dark)", border: "1.5px solid var(--border)", borderRadius: "14px", fontSize: "14px", fontWeight: "600", cursor: "pointer", fontFamily: "var(--font-body)", marginTop: 8 }}>
+            Back to My Orders
+          </button>
+        )}
       </div>
     </div>
   );

@@ -138,7 +138,7 @@ export default function CheckoutPage() {
       setSuccessOrderId(firestoreId);
       setTimeout(() => {
         navigate(`/order-tracking/${firestoreId}`, {
-          state: { orderId: firestoreId, delivery, deliveryFee, payment, subtotal, total },
+          state: { orderId: firestoreId, delivery, deliveryFee, payment, subtotal, total, from: "checkout" },
         });
       }, 3000);
     } catch (err) {
