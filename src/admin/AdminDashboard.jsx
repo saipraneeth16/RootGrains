@@ -130,7 +130,7 @@ function OrdersView({ orders, onStatusUpdate }) {
                 <div style={{ padding: "0 18px 16px", borderTop: "1px solid #f0ece8", background: "#faf8f5" }}>
                   <div style={{ fontSize: 13, color: "#555", margin: "10px 0 4px" }}><strong>Items:</strong> {o.items?.map(i => `${i.name} ${i.weight || ""} ×${i.qty}`).join(", ")}</div>
                   <div style={{ fontSize: 13, color: "#555", marginBottom: 4 }}>📍 {o.address}, {o.city} - {o.pincode}</div>
-                  <div style={{ fontSize: 13, color: "#555", marginBottom: 12 }}>🕐 Slot: {o.slot} · 💳 {o.payment?.toUpperCase()}</div>
+                  <div style={{ fontSize: 13, color: "#555", marginBottom: 12 }}>🚚 {o.deliveryType === "rapid" ? "⚡ Rapid Delivery" : "🌿 Eco Delivery"} · 💳 {o.payment?.toUpperCase()}</div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {nextStatus[o.status] && <button onClick={() => onStatusUpdate(o.id, nextStatus[o.status])} style={{ padding: "8px 16px", background: "#3b1f0e", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Mark as {statusColors[nextStatus[o.status]]?.label} →</button>}
                     {o.status !== "cancelled" && o.status !== "delivered" && <button onClick={() => onStatusUpdate(o.id, "cancelled")} style={{ padding: "8px 16px", background: "#ffebee", color: "#c62828", border: "none", borderRadius: 8, fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Cancel Order</button>}
