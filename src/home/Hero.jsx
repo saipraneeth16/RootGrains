@@ -38,27 +38,12 @@ function Hero() {
   const paraLines = t.heroPara.split("\n");
 
   return (
-    <div style={{ position: "relative", width: "100%", minHeight: 170, maxHeight: 195, overflow: "hidden", background: "#fdf8f0" }}>
-      {/* Slides */}
-      {SLIDES.map((slide, i) => (
-        <div
-          key={i}
-          style={{
-            position: "absolute", inset: 0,
-            backgroundImage: `url('${slide.img}')`,
-            backgroundSize: "cover", backgroundPosition: "center",
-            opacity: i === current ? (animating ? 0 : 1) : 0,
-            transition: "opacity 0.4s ease-in-out",
-            zIndex: i === current ? 1 : 0,
-          }}
-        />
-      ))}
-
+    <div className="hero" style={{ backgroundImage: `url('${SLIDES[current].img}')`, opacity: animating ? 0.6 : 1, transition: "opacity 0.4s ease-in-out" }}>
       {/* Overlay gradient */}
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(253,248,240,0.93) 38%, rgba(253,248,240,0.15) 100%)", zIndex: 2 }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(253,248,240,0.93) 38%, rgba(253,248,240,0.15) 100%)", zIndex: 1 }} />
 
       {/* Text — always on top, never slides */}
-      <div style={{ position: "relative", zIndex: 3, padding: "18px 16px", minHeight: 170, display: "flex", flexDirection: "column", justifyContent: "center", maxWidth: "58%" }}>
+      <div style={{ position: "relative", zIndex: 2 }}>
         <h2 style={{ fontFamily: "var(--font-display,'Zodiak',Georgia,serif)", fontSize: 16, fontWeight: 700, color: "var(--brown-dark,#3d1f0a)", lineHeight: 1.25, marginBottom: 6, letterSpacing: 0.1 }}>
           {titleLine1}<br />{titleLine2}
         </h2>
@@ -75,7 +60,7 @@ function Hero() {
       </div>
 
       {/* Dot indicators */}
-      <div style={{ position: "absolute", bottom: 8, right: 10, zIndex: 4, display: "flex", gap: 5 }}>
+      <div style={{ position: "absolute", bottom: 8, right: 10, zIndex: 2, display: "flex", gap: 5 }}>
         {SLIDES.map((_, i) => (
           <button
             key={i}
