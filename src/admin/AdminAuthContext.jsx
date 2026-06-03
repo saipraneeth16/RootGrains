@@ -9,6 +9,8 @@ import { auth } from "../firebase";
 const AdminAuthContext = createContext(null);
 
 const BB_SUPER_ADMIN_EMAIL = "businessboxvizag@gmail.com";
+// Only these emails can access the admin panel
+const ADMIN_EMAILS = ["butchiricetradinggwk@gmail.com", "stanleyvanthala@gmail.com", "businessboxvizag@gmail.com"];
 
 export function AdminAuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -38,7 +40,7 @@ export function AdminAuthProvider({ children }) {
   };
 
   const isBBAdmin = user?.email === BB_SUPER_ADMIN_EMAIL;
-  const isKBRAdmin = !!user;
+  const isKBRAdmin = user && ADMIN_EMAILS.includes(user.email);
 
   return (
     <AdminAuthContext.Provider

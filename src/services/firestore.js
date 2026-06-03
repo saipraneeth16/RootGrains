@@ -139,6 +139,16 @@ export async function logPageView(page) {
   await setDoc(ref, { [page]: increment(1), date: today }, { merge: true });
 }
 
+// ─── GET ORDERS FOR A SPECIFIC USER ──────────────────────────────────────────
+export async function getUserOrders(userId) {
+  const snap = await getDocs(
+    query(collection(db, "orders"), orderBy("createdAt", "desc"))
+  );
+  return snap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .filter(o => o.customerId === userId);
+}
+
 // ─── GET SINGLE PRODUCT BY ID ────────────────────────────────────────────────
 export async function getProductById(id) {
   const ref = doc(db, "products", id);

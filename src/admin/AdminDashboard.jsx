@@ -411,7 +411,7 @@ function Skeleton() {
 
 // ── MAIN ──────────────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
-  const { user, logout, loading } = useAdminAuth();
+  const { user, logout, loading, isKBRAdmin } = useAdminAuth();
   const [active, setActive] = useState("dashboard");
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
@@ -448,7 +448,7 @@ export default function AdminDashboard() {
   }, []);
 
   if (loading) return <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", fontSize: 14, color: "#aaa" }}>Loading...</div>;
-  if (!user) return <AdminLoginPage />;
+  if (!isKBRAdmin) return <AdminLoginPage />;
 
   const renderContent = () => {
     if (dataLoading) return <Skeleton />;

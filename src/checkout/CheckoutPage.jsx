@@ -4,6 +4,7 @@ import "../home/Home.css";
 import { useLang } from "../LanguageContext";
 import { useCart } from "../CartContext";
 import { createOrder, saveCustomer, logPageView } from "../services/firestore";
+import { useAuth } from "../auth/AuthContext";
 
 const s = {
   page: { fontFamily: "var(--font-body)", background: "var(--cream)", minHeight: "100vh" },
@@ -24,7 +25,14 @@ export default function CheckoutPage() {
   const navigate = useNavigate();
   const { t } = useLang();
   const { cart, subtotal, clearCart } = useCart();
-  const [form, setForm] = useState({ name: "", mobile: "", address: "", city: "Visakhapatnam", pincode: "" });
+  const { user } = useAuth();
+  const [form, setForm] = useState({
+    name: user?.displayName || "",
+    mobile: "",
+    address: "",
+    city: "Visakhapatnam",
+    pincode: "",
+  });
   const [slot, setSlot] = useState("morning");
   const [payment, setPayment] = useState("cod");
   const [errors, setErrors] = useState({});
@@ -52,20 +60,23 @@ export default function CheckoutPage() {
     setPlacing(true);
     try {
       const orderPayload = {
+        customerId: user?.uid || "guest",
         customerName: form.name,
         customerPhone: form.mobile,
+        customerEmail: user?.email || "",
         address: form.address,
         city: form.city,
         pincode: form.pincode,
-        slot,
         payment,
         total: subtotal,
         items: cart.map(i => ({ id: i.id, name: i.name, weight: i.weight, qty: i.qty, price: i.price })),
       };
       const firestoreId = await createOrder(orderPayload);
-      // Save/update customer record
-      await saveCustomer(form.mobile, {
+      // Save/update customer record linked to Firebase uid
+      const customerId = user?.uid || form.mobile;
+      await saveCustomer(customerId, {
         name: form.name,
+        email: user?.email || "",
         phone: form.mobile,
         address: form.address,
         city: form.city,

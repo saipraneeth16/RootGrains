@@ -1,20 +1,24 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import "../home/Home.css";
 import { useLang } from "../LanguageContext";
+import { useAuth } from "../auth/AuthContext";
+import { getUserOrders } from "../services/firestore";
 import BottomNav from "../home/BottomNav";
 
-const mockOrders = [
-  { id: "RG240501", date: "1 May 2026", items: "Sona Masoorie Raw 2kg × 2", total: 220, status: "Delivered" },
-  { id: "RG240428", date: "28 Apr 2026", items: "Foxtail Millet 1kg × 1, Pearl Millet 500g × 2", total: 165, status: "Delivered" },
-  { id: "RG240415", date: "15 Apr 2026", items: "Premium Basmati 5kg × 1", total: 550, status: "Delivered" },
-];
+const statusColors = {
+  pending:    { bg: "#fff8e1", color: "#f57f17" },
+  confirmed:  { bg: "#e3f2fd", color: "#1565c0" },
+  dispatched: { bg: "#f3e5f5", color: "#6a1b9a" },
+  delivered:  { bg: "#e8f5e9", color: "#2e7d32" },
+  cancelled:  { bg: "#ffebee", color: "#c62828" },
+};
 
-function MenuItem({ icon, label, badge, onClick, danger }) {
+function MenuItem({ icon, label, onClick, danger }) {
   return (
     <div onClick={onClick} style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 16px", cursor: "pointer", borderBottom: "1px solid var(--cream-3)" }}>
       <span style={{ fontSize: "20px", width: "28px", textAlign: "center" }}>{icon}</span>
       <span style={{ flex: 1, fontSize: "14px", fontWeight: "500", color: danger ? "#c0392b" : "var(--text)" }}>{label}</span>
-      {badge && <span style={{ fontSize: "11px", background: "var(--gold-pale)", color: "var(--brown)", padding: "2px 8px", borderRadius: "var(--radius-full)", fontWeight: "600" }}>{badge}</span>}
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
     </div>
   );
@@ -23,6 +27,19 @@ function MenuItem({ icon, label, badge, onClick, danger }) {
 export default function ProfilePage() {
   const { t, lang, toggleLang } = useLang();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const [orders, setOrders] = useState([]);
+
+  useEffect(() => {
+    if (user) {
+      getUserOrders(user.uid).then(setOrders).catch(() => {});
+    }
+  }, [user]);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+  };
 
   return (
     <div className="mobile">
@@ -36,16 +53,29 @@ export default function ProfilePage() {
       <div style={{ background: "var(--brown-dark)", padding: "24px 16px", display: "flex", alignItems: "center", gap: "16px" }}>
         <div style={{ width: "60px", height: "60px", borderRadius: "50%", background: "var(--gold)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "26px", flexShrink: 0 }}>👤</div>
         <div>
-          <p style={{ fontSize: "17px", fontWeight: "700", color: "#fff", marginBottom: "4px", fontFamily: "var(--font-display)" }}>Guest User</p>
-          <button onClick={() => navigate("/login")} style={{ padding: "6px 14px", background: "var(--gold)", color: "var(--brown-dark)", border: "none", borderRadius: "var(--radius-full)", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "var(--font-body)" }}>
-            Login / Sign Up
-          </button>
+          {user ? (
+            <>
+              <p style={{ fontSize: "17px", fontWeight: "700", color: "#fff", marginBottom: "2px", fontFamily: "var(--font-display)" }}>{user.displayName || "User"}</p>
+              <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.7)" }}>{user.email}</p>
+            </>
+          ) : (
+            <>
+              <p style={{ fontSize: "17px", fontWeight: "700", color: "#fff", marginBottom: "4px", fontFamily: "var(--font-display)" }}>Guest User</p>
+              <button onClick={() => navigate("/login")} style={{ padding: "6px 14px", background: "var(--gold)", color: "var(--brown-dark)", border: "none", borderRadius: "var(--radius-full)", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "var(--font-body)" }}>
+                Login / Sign Up
+              </button>
+            </>
+          )}
         </div>
       </div>
 
       {/* Stats row */}
       <div style={{ display: "flex", background: "var(--cream-2)", borderBottom: "1px solid var(--border)" }}>
-        {[{ label: "Orders", value: "3" }, { label: "Saved", value: "1" }, { label: "Points", value: "85" }].map((s, i) => (
+        {[
+          { label: "Orders", value: orders.length },
+          { label: "Delivered", value: orders.filter(o => o.status === "delivered").length },
+          { label: "Pending", value: orders.filter(o => ["pending","confirmed","dispatched"].includes(o.status)).length },
+        ].map((s, i) => (
           <div key={i} style={{ flex: 1, textAlign: "center", padding: "14px 0", borderRight: i < 2 ? "1px solid var(--border)" : "none" }}>
             <p style={{ fontSize: "20px", fontWeight: "700", color: "var(--brown-dark)", fontFamily: "var(--font-display)" }}>{s.value}</p>
             <p style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: "500" }}>{s.label}</p>
@@ -56,19 +86,32 @@ export default function ProfilePage() {
       {/* My Orders */}
       <div style={{ background: "#fff", marginTop: "10px" }}>
         <p style={{ fontSize: "12px", fontWeight: "800", color: "var(--brown-dark)", textTransform: "uppercase", letterSpacing: "0.8px", padding: "14px 16px 10px" }}>{t.myOrders}</p>
-        {mockOrders.map(order => (
-          <div key={order.id} style={{ padding: "12px 16px", borderBottom: "1px solid var(--cream-3)", cursor: "pointer" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-              <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--brown-dark)" }}>#{order.id}</span>
-              <span style={{ fontSize: "11px", padding: "2px 8px", background: "#e8f5e9", color: "#2e7d32", borderRadius: "var(--radius-full)", fontWeight: "600" }}>{order.status}</span>
-            </div>
-            <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "3px" }}>{order.items}</p>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontSize: "11px", color: "var(--text-faint)" }}>{order.date}</span>
-              <span style={{ fontSize: "13px", fontWeight: "700", color: "var(--brown-dark)" }}>₹{order.total}</span>
-            </div>
-          </div>
-        ))}
+        {orders.length === 0 ? (
+          <p style={{ fontSize: "13px", color: "var(--text-faint)", padding: "0 16px 16px" }}>
+            {user ? "No orders yet. Start shopping!" : "Log in to see your orders."}
+          </p>
+        ) : (
+          orders.slice(0, 5).map(order => {
+            const sc = statusColors[order.status] || statusColors.pending;
+            const createdAt = order.createdAt?.toDate?.() || new Date();
+            return (
+              <div key={order.id} style={{ padding: "12px 16px", borderBottom: "1px solid var(--cream-3)", cursor: "pointer" }}
+                onClick={() => navigate(`/order-tracking/${order.id}`)}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                  <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--brown-dark)" }}>#{order.id.slice(-8).toUpperCase()}</span>
+                  <span style={{ fontSize: "11px", padding: "2px 8px", background: sc.bg, color: sc.color, borderRadius: "var(--radius-full)", fontWeight: "600", textTransform: "capitalize" }}>{order.status}</span>
+                </div>
+                <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "3px" }}>
+                  {order.items?.map(i => `${i.name} ${i.weight} ×${i.qty}`).join(", ")}
+                </p>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: "11px", color: "var(--text-faint)" }}>{createdAt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                  <span style={{ fontSize: "13px", fontWeight: "700", color: "var(--brown-dark)" }}>₹{order.total}</span>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {/* Menu */}
@@ -83,6 +126,7 @@ export default function ProfilePage() {
         </div>
         <MenuItem icon="🔔" label={t.notifications} onClick={() => navigate("/notifications")} />
         <MenuItem icon="❓" label={t.helpSupport} onClick={() => window.open("https://wa.me/919999999999?text=Hi, I need help with my Root Grains order", "_blank")} />
+        {user && <MenuItem icon="🚪" label="Log Out" onClick={handleLogout} danger />}
       </div>
 
       {/* WhatsApp */}
@@ -97,9 +141,7 @@ export default function ProfilePage() {
         </a>
       </div>
 
-      {/* Version */}
       <p style={{ textAlign: "center", fontSize: "11px", color: "var(--text-faint)", padding: "16px 0 8px" }}>Root Grains v1.0 · Visakhapatnam</p>
-
       <BottomNav />
     </div>
   );

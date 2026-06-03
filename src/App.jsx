@@ -16,6 +16,8 @@ import BrandPage from "./brand/BrandPage";
 import BrandsPage from "./brand/BrandsPage";
 import { AdminAuthProvider } from "./admin/AdminAuthContext";
 import { ProductsProvider } from "./ProductsContext";
+import { AuthProvider } from "./auth/AuthContext";
+import SignupPage from "./auth/SignupPage";
 import { useLang } from "./LanguageContext";
 
 function AppRoutes() {
@@ -30,6 +32,7 @@ function AppRoutes() {
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/order-tracking/:orderId" element={<OrderTrackingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/saved-addresses" element={<SavedAddressesPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
@@ -47,9 +50,11 @@ function App() {
   return (
     <HashRouter>
       <AdminAuthProvider>
-        <ProductsProvider>
-          <AppRoutes />
-        </ProductsProvider>
+        <AuthProvider>
+          <ProductsProvider>
+            <AppRoutes />
+          </ProductsProvider>
+        </AuthProvider>
       </AdminAuthProvider>
     </HashRouter>
   );

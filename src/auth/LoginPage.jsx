@@ -1,37 +1,40 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../home/Home.css";
-import { useLang } from "../LanguageContext";
+import { useAuth } from "./AuthContext";
 
 export default function LoginPage() {
-  const { t } = useLang();
   const navigate = useNavigate();
-  const [step, setStep] = useState("mobile"); // mobile | otp
-  const [mobile, setMobile] = useState("");
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const { login } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSendOtp = () => {
-    if (!mobile.match(/^[6-9]\d{9}$/)) { setError("Enter a valid 10-digit mobile number"); return; }
-    setError("");
-    setLoading(true);
-    setTimeout(() => { setLoading(false); setStep("otp"); }, 1200);
+  const inp = {
+    width: "100%", padding: "12px 14px",
+    border: "1.5px solid var(--border)", borderRadius: "var(--radius-sm)",
+    fontSize: "14px", color: "var(--text)", background: "var(--cream-2)",
+    outline: "none", fontFamily: "var(--font-body)", boxSizing: "border-box",
   };
 
-  const handleOtpChange = (val, i) => {
-    const newOtp = [...otp];
-    newOtp[i] = val.slice(-1);
-    setOtp(newOtp);
-    if (val && i < 5) document.getElementById(`otp-${i + 1}`)?.focus();
-  };
-
-  const handleVerify = () => {
-    const code = otp.join("");
-    if (code.length < 6) { setError("Enter complete 6-digit OTP"); return; }
+  const handleLogin = async () => {
     setError("");
+    if (!email.includes("@")) { setError("Enter a valid email address."); return; }
+    if (!password) { setError("Enter your password."); return; }
     setLoading(true);
-    setTimeout(() => { setLoading(false); navigate("/profile"); }, 1200);
+    try {
+      await login(email, password);
+      navigate("/profile");
+    } catch (err) {
+      if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password" || err.code === "auth/invalid-credential")
+        setError("Incorrect email or password.");
+      else if (err.code === "auth/invalid-email")
+        setError("Invalid email address.");
+      else
+        setError(err.message || "Login failed. Please try again.");
+    }
+    setLoading(false);
   };
 
   return (
@@ -39,71 +42,49 @@ export default function LoginPage() {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 14px", background: "#fff", boxShadow: "var(--shadow-sm)", borderBottom: "1px solid var(--border)" }}>
         <button className="back-btn" onClick={() => navigate(-1)}>←</button>
-        <span style={{ fontSize: "17px", fontWeight: "700", color: "var(--brown-dark)", fontFamily: "var(--font-display)" }}>{t.loginTitle}</span>
+        <span style={{ fontSize: "17px", fontWeight: "700", color: "var(--brown-dark)", fontFamily: "var(--font-display)" }}>Log In</span>
       </div>
 
-      {/* Brand Hero */}
+      {/* Hero */}
       <div style={{ background: "var(--brown-dark)", padding: "32px 24px 28px", textAlign: "center" }}>
         <img src="/logo.png" alt="Root Grains" style={{ width: "72px", height: "72px", objectFit: "contain", margin: "0 auto 14px", display: "block" }} />
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: "700", color: "#fff", marginBottom: "6px" }}>{t.loginWelcome}</h1>
-        <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.70)", lineHeight: 1.5 }}>{t.loginSubtitle}</p>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: "700", color: "#fff", marginBottom: "6px" }}>Welcome Back</h1>
+        <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.70)" }}>Log in to track your orders</p>
       </div>
 
-      <div style={{ padding: "24px 20px" }}>
-        {step === "mobile" ? (
-          <div>
-            <p style={{ fontSize: "13px", fontWeight: "600", color: "var(--text-muted)", marginBottom: "8px" }}>{t.enterMobile}</p>
-            <div style={{ display: "flex", gap: "10px", marginBottom: "6px" }}>
-              <div style={{ padding: "11px 12px", background: "var(--cream-2)", border: "1.5px solid var(--border)", borderRadius: "var(--radius-sm)", fontSize: "14px", fontWeight: "700", color: "var(--brown-dark)" }}>+91</div>
-              <input
-                type="tel" maxLength={10} value={mobile}
-                onChange={e => { setMobile(e.target.value); setError(""); }}
-                placeholder="Enter mobile number"
-                style={{ flex: 1, padding: "11px 14px", border: `1.5px solid ${error ? "#e55" : "var(--border)"}`, borderRadius: "var(--radius-sm)", fontSize: "15px", color: "var(--text)", background: "var(--cream-2)", outline: "none", fontFamily: "var(--font-body)" }}
-                onKeyDown={e => e.key === "Enter" && handleSendOtp()}
-              />
-            </div>
-            {error && <p style={{ fontSize: "11px", color: "#e55", marginBottom: "10px" }}>{error}</p>}
-            <button
-              onClick={handleSendOtp} disabled={loading}
-              style={{ width: "100%", padding: "14px", background: loading ? "var(--brown)" : "var(--brown-dark)", color: "#fff", border: "none", borderRadius: "var(--radius-md)", fontSize: "15px", fontWeight: "700", cursor: "pointer", marginTop: "8px", fontFamily: "var(--font-body)" }}>
-              {loading ? "Sending..." : t.sendOtp}
-            </button>
-          </div>
-        ) : (
-          <div>
-            <p style={{ fontSize: "13px", fontWeight: "600", color: "var(--text-muted)", marginBottom: "4px" }}>{t.enterOtp}</p>
-            <p style={{ fontSize: "12px", color: "var(--text-faint)", marginBottom: "20px" }}>{t.otpSent} +91 {mobile}</p>
-            <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: "6px" }}>
-              {otp.map((d, i) => (
-                <input
-                  key={i} id={`otp-${i}`} type="tel" maxLength={1} value={d}
-                  onChange={e => handleOtpChange(e.target.value, i)}
-                  onKeyDown={e => { if (e.key === "Backspace" && !d && i > 0) document.getElementById(`otp-${i - 1}`)?.focus(); }}
-                  style={{ width: "44px", height: "50px", textAlign: "center", fontSize: "20px", fontWeight: "700", border: `2px solid ${d ? "var(--gold)" : "var(--border)"}`, borderRadius: "var(--radius-sm)", background: d ? "var(--gold-pale)" : "var(--cream-2)", outline: "none", color: "var(--brown-dark)", fontFamily: "var(--font-body)" }}
-                />
-              ))}
-            </div>
-            {error && <p style={{ fontSize: "11px", color: "#e55", marginBottom: "10px", textAlign: "center" }}>{error}</p>}
-            <button
-              onClick={handleVerify} disabled={loading}
-              style={{ width: "100%", padding: "14px", background: loading ? "var(--brown)" : "var(--brown-dark)", color: "#fff", border: "none", borderRadius: "var(--radius-md)", fontSize: "15px", fontWeight: "700", cursor: "pointer", marginTop: "14px", fontFamily: "var(--font-body)" }}>
-              {loading ? "Verifying..." : t.verifyOtp}
-            </button>
-            <button onClick={() => { setStep("mobile"); setOtp(["", "", "", "", "", ""]); setError(""); }}
-              style={{ width: "100%", padding: "12px", background: "transparent", color: "var(--gold)", border: "none", fontSize: "13px", fontWeight: "600", cursor: "pointer", marginTop: "8px", fontFamily: "var(--font-body)" }}>
-              ← Change Number
-            </button>
-            <p style={{ textAlign: "center", fontSize: "12px", color: "var(--text-faint)", marginTop: "12px" }}>
-              Didn't receive OTP?{" "}
-              <span onClick={() => setStep("mobile")} style={{ color: "var(--gold)", fontWeight: "600", cursor: "pointer" }}>{t.resendOtp}</span>
-            </p>
+      <div style={{ padding: "24px 20px", display: "flex", flexDirection: "column", gap: "14px" }}>
+        <div>
+          <label style={{ fontSize: "12px", fontWeight: "600", color: "var(--text-muted)", marginBottom: "5px", display: "block" }}>Email Address</label>
+          <input style={inp} type="email" value={email} onChange={e => { setEmail(e.target.value); setError(""); }} placeholder="you@example.com" />
+        </div>
+        <div>
+          <label style={{ fontSize: "12px", fontWeight: "600", color: "var(--text-muted)", marginBottom: "5px", display: "block" }}>Password</label>
+          <input style={inp} type="password" value={password} onChange={e => { setPassword(e.target.value); setError(""); }} placeholder="Enter your password" onKeyDown={e => e.key === "Enter" && handleLogin()} />
+        </div>
+
+        {error && (
+          <div style={{ background: "#fff0f0", border: "1px solid #fcc", borderRadius: "8px", padding: "10px 12px", fontSize: "13px", color: "#c0392b", fontWeight: "500" }}>
+            {error}
           </div>
         )}
 
-        <div style={{ marginTop: "32px", padding: "16px", background: "var(--cream-2)", borderRadius: "var(--radius-md)", border: "1px solid var(--border)" }}>
+        <button
+          onClick={handleLogin} disabled={loading}
+          style={{ width: "100%", padding: "14px", background: loading ? "var(--brown)" : "var(--brown-dark)", color: "#fff", border: "none", borderRadius: "var(--radius-md)", fontSize: "15px", fontWeight: "700", cursor: loading ? "not-allowed" : "pointer", fontFamily: "var(--font-body)", marginTop: "4px" }}
+        >
+          {loading ? "Logging in..." : "Log In →"}
+        </button>
+
+        <p style={{ textAlign: "center", fontSize: "13px", color: "var(--text-muted)", marginTop: "8px" }}>
+          Don't have an account?{" "}
+          <span onClick={() => navigate("/signup")} style={{ color: "var(--brown-dark)", fontWeight: "700", cursor: "pointer" }}>
+            Sign Up
+          </span>
+        </p>
+
+        <div style={{ marginTop: "16px", padding: "14px", background: "var(--cream-2)", borderRadius: "var(--radius-md)", border: "1px solid var(--border)" }}>
           <p style={{ fontSize: "11px", color: "var(--text-muted)", textAlign: "center", lineHeight: 1.6 }}>
-            By continuing, you agree to our Terms of Service and Privacy Policy. Your number will only be used for order updates.
+            By continuing, you agree to our Terms of Service and Privacy Policy.
           </p>
         </div>
       </div>

@@ -2,13 +2,13 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Products — anyone can read, only logged-in admins can write
+    // Products — anyone can read, only admins can write
     match /products/{id} {
       allow read: if true;
       allow write: if request.auth != null;
     }
 
-    // Orders — anyone can create, only admins can read/update
+    // Orders — anyone can create (guest checkout allowed), admins can read all, users can read their own
     match /orders/{id} {
       allow create: if true;
       allow read, update: if request.auth != null;
@@ -20,10 +20,13 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
 
-    // Customers & analytics — only admins
-    match /customers/{id} {
-      allow read, write: if request.auth != null;
+    // Customers — users can read/write their own, admins can read all
+    match /customers/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null;
     }
+
+    // Analytics — only admins
     match /analytics/{id} {
       allow read, write: if request.auth != null;
     }
