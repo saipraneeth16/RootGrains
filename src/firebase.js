@@ -13,8 +13,15 @@ const firebaseConfig = {
   measurementId: "G-1JRZSG8NKQ",
 };
 
+// Main app — used by the store (customer auth + Firestore)
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 export const db = getFirestore(app, "default");
 export const auth = getAuth(app);
+
+// Separate admin app instance — completely independent auth session
+// This means admin login and customer login don't interfere with each other
+const adminApp = initializeApp(firebaseConfig, "admin");
+export const adminAuth = getAuth(adminApp);
+
 export default app;

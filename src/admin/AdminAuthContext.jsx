@@ -4,7 +4,7 @@ import {
   signOut,
   onAuthStateChanged,
 } from "firebase/auth";
-import { auth } from "../firebase";
+import { adminAuth } from "../firebase";
 
 const AdminAuthContext = createContext(null);
 
@@ -18,7 +18,7 @@ export function AdminAuthProvider({ children }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
+    const unsub = onAuthStateChanged(adminAuth, (u) => {
       setUser(u);
       setLoading(false);
     });
@@ -28,7 +28,7 @@ export function AdminAuthProvider({ children }) {
   const login = async (email, password) => {
     setError("");
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(adminAuth, email, password);
     } catch (e) {
       setError(e.message || "Invalid email or password. Please try again.");
       throw e;
@@ -36,7 +36,7 @@ export function AdminAuthProvider({ children }) {
   };
 
   const logout = async () => {
-    await signOut(auth);
+    await signOut(adminAuth);
   };
 
   const isBBAdmin = user?.email === BB_SUPER_ADMIN_EMAIL;
