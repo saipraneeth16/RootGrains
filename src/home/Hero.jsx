@@ -38,7 +38,7 @@ function Hero() {
   const paraLines = t.heroPara.split("\n");
 
   return (
-    <div style={{ position: "relative", width: "100%", minHeight: 170, maxHeight: 220, overflow: "hidden" }}>
+    <div style={{ position: "relative", width: "100%", minHeight: 170, maxHeight: 195, overflow: "hidden", background: "#fdf8f0" }}>
       {/* Slides */}
       {SLIDES.map((slide, i) => (
         <div
@@ -46,7 +46,7 @@ function Hero() {
           style={{
             position: "absolute", inset: 0,
             backgroundImage: `url('${slide.img}')`,
-            backgroundSize: "cover", backgroundPosition: "right center",
+            backgroundSize: "cover", backgroundPosition: "center",
             opacity: i === current ? (animating ? 0 : 1) : 0,
             transition: "opacity 0.4s ease-in-out",
             zIndex: i === current ? 1 : 0,
