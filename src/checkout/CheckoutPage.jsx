@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import "../home/Home.css";
 import { useLang } from "../LanguageContext";
 import { useCart } from "../CartContext";
-import { createOrder, saveCustomer, logPageView } from "../services/firestore";
+import { createOrder, saveCustomer, logPageView, getUserAddresses } from "../services/firestore";
 import { useAuth } from "../auth/AuthContext";
 
 const s = {
@@ -15,52 +15,92 @@ const s = {
   label: { fontSize: "12px", fontWeight: "600", color: "var(--text-muted)", marginBottom: "5px", display: "block" },
   input: { width: "100%", padding: "10px 12px", border: "1.5px solid var(--border)", borderRadius: "var(--radius-sm)", fontSize: "14px", color: "var(--text)", background: "var(--cream-2)", outline: "none", fontFamily: "var(--font-body)", boxSizing: "border-box" },
   row: { display: "flex", gap: "10px" },
-  payBtn: (active) => ({ flex: 1, padding: "12px 10px", border: `1.5px solid ${active ? "var(--olive)" : "var(--border)"}`, borderRadius: "var(--radius-md)", background: active ? "#f0f5e0" : "#fff", fontSize: "13px", fontWeight: "600", color: active ? "var(--olive)" : "var(--text-muted)", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }),
   summaryRow: { display: "flex", justifyContent: "space-between", fontSize: "13px", color: "var(--text-muted)", marginBottom: "8px" },
-  placeBtn: { width: "100%", padding: "16px", background: "var(--brown-dark)", color: "#fff", border: "none", borderRadius: "var(--radius-md)", fontSize: "16px", fontWeight: "700", cursor: "pointer", margin: "14px 0", fontFamily: "var(--font-body)" },
 };
+
+// Swiggy-style order placed popup
+function OrderSuccessPopup({ orderId }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <style>{`
+        @keyframes scaleIn { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
+        @keyframes checkDraw { from{stroke-dashoffset:100} to{stroke-dashoffset:0} }
+        @keyframes ripple { 0%{transform:scale(1);opacity:0.6} 100%{transform:scale(2.2);opacity:0} }
+        @keyframes slideUp { from{transform:translateY(40px);opacity:0} to{transform:translateY(0);opacity:1} }
+      `}</style>
+      <div style={{ background: "#fff", borderRadius: 24, padding: "44px 32px 36px", textAlign: "center", width: "85%", maxWidth: 320, animation: "slideUp 0.4s ease-out" }}>
+        {/* Animated check circle */}
+        <div style={{ position: "relative", width: 90, height: 90, margin: "0 auto 20px" }}>
+          <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "#e8f5e9", animation: "ripple 1.2s ease-out 0.3s infinite" }} />
+          <div style={{ position: "relative", width: 90, height: 90, borderRadius: "50%", background: "#4caf50", display: "flex", alignItems: "center", justifyContent: "center", animation: "scaleIn 0.4s ease-out 0.1s both" }}>
+            <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+              <polyline points="8,22 18,32 36,14" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"
+                strokeDasharray="100" strokeDashoffset="100"
+                style={{ animation: "checkDraw 0.5s ease-out 0.5s forwards" }} />
+            </svg>
+          </div>
+        </div>
+        <h2 style={{ fontSize: 22, fontWeight: 800, color: "#2e7d32", fontFamily: "var(--font-display)", marginBottom: 8 }}>Order Placed!</h2>
+        <p style={{ fontSize: 14, color: "#666", marginBottom: 6 }}>Your order has been placed successfully.</p>
+        <p style={{ fontSize: 12, color: "#aaa" }}>Order #{orderId?.slice(-8).toUpperCase()}</p>
+        <div style={{ marginTop: 20, height: 3, background: "#e8f5e9", borderRadius: 2, overflow: "hidden" }}>
+          <div style={{ height: "100%", background: "#4caf50", borderRadius: 2, animation: "none", width: "100%", transition: "width 2.5s linear", willChange: "width" }} id="progress-bar" />
+        </div>
+        <p style={{ fontSize: 11, color: "#aaa", marginTop: 8 }}>Taking you to order details...</p>
+      </div>
+    </div>
+  );
+}
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useLang();
   const { cart, subtotal, clearCart } = useCart();
   const { user } = useAuth();
 
-  const [form, setForm] = useState({
-    name: user?.displayName || "",
-    mobile: "",
-    address: "",
-    city: "Visakhapatnam",
-    pincode: "",
-  });
+  const [addresses, setAddresses] = useState([]);
+  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [mobile, setMobile] = useState("");
   const [delivery, setDelivery] = useState("eco");
   const [payment, setPayment] = useState("cod");
   const [errors, setErrors] = useState({});
   const [placing, setPlacing] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [successOrderId, setSuccessOrderId] = useState(null);
 
-  // Redirect to login if not signed in
+  const deliveryFee = delivery === "eco" ? Math.round(subtotal * 0.10) : Math.round(subtotal * 0.15);
+  const total = subtotal + deliveryFee;
+
+  // Redirect if not logged in
   useEffect(() => {
-    if (!user) {
-      navigate("/login", { state: { from: "/checkout" } });
+    if (!user) navigate("/login", { state: { from: "/checkout" } });
+  }, [user]);
+
+  // Load saved addresses
+  useEffect(() => {
+    if (user) {
+      getUserAddresses(user.uid).then(addrs => {
+        setAddresses(addrs);
+        if (addrs.length > 0) setSelectedAddress(addrs[0]);
+      });
     }
   }, [user]);
 
+  // Handle address returned from SavedAddressesPage
   useEffect(() => {
-    if (cart.length === 0) navigate("/");
-  }, [cart.length]);
+    if (location.state?.selectedAddress) {
+      setSelectedAddress(location.state.selectedAddress);
+    }
+  }, [location.state]);
 
-  const deliveryFee = delivery === "eco"
-    ? Math.round(subtotal * 0.10)
-    : Math.round(subtotal * 0.15);
-  const total = subtotal + deliveryFee;
+  useEffect(() => {
+    if (cart.length === 0 && !successOrderId) navigate("/");
+  }, [cart.length]);
 
   const validate = () => {
     const e = {};
-    if (!form.name.trim()) e.name = "Required";
-    if (!form.mobile.match(/^[6-9]\d{9}$/)) e.mobile = "Enter valid 10-digit number";
-    if (!form.address.trim()) e.address = "Required";
-    if (!form.pincode.match(/^\d{6}$/)) e.pincode = "Enter valid 6-digit pincode";
+    if (!selectedAddress) e.address = "Please select a delivery address.";
+    if (!mobile.match(/^[6-9]\d{9}$/)) e.mobile = "Enter valid 10-digit number";
     return e;
   };
 
@@ -70,13 +110,13 @@ export default function CheckoutPage() {
     setPlacing(true);
     try {
       const orderPayload = {
-        customerId: user?.uid || "guest",
-        customerName: form.name,
-        customerPhone: form.mobile,
-        customerEmail: user?.email || "",
-        address: form.address,
-        city: form.city,
-        pincode: form.pincode,
+        customerId: user.uid,
+        customerName: selectedAddress.name,
+        customerPhone: mobile,
+        customerEmail: user.email || "",
+        address: selectedAddress.address,
+        city: selectedAddress.city,
+        pincode: selectedAddress.pincode,
         deliveryType: delivery,
         deliveryFee,
         payment,
@@ -85,23 +125,19 @@ export default function CheckoutPage() {
         items: cart.map(i => ({ id: i.id, name: i.name, weight: i.weight, qty: i.qty, price: i.price })),
       };
       const firestoreId = await createOrder(orderPayload);
-      await saveCustomer(user?.uid || form.mobile, {
-        name: form.name,
-        email: user?.email || "",
-        phone: form.mobile,
-        address: form.address,
-        city: form.city,
-        pincode: form.pincode,
+      await saveCustomer(user.uid, {
+        name: selectedAddress.name,
+        email: user.email || "",
+        phone: mobile,
       });
       logPageView("checkout");
       clearCart();
-      setShowSuccess(true);
+      setSuccessOrderId(firestoreId);
       setTimeout(() => {
-        setShowSuccess(false);
         navigate(`/order-tracking/${firestoreId}`, {
-          state: { orderId: firestoreId, form, delivery, deliveryFee, payment, subtotal, total, items: cart },
+          state: { orderId: firestoreId, delivery, deliveryFee, payment, subtotal, total },
         });
-      }, 2500);
+      }, 3000);
     } catch (err) {
       console.error("Order failed:", err);
       alert("Order failed: " + err.message);
@@ -109,39 +145,18 @@ export default function CheckoutPage() {
     }
   };
 
-  const inp = (field) => (e) => {
-    setForm(f => ({ ...f, [field]: e.target.value }));
-    setErrors(er => ({ ...er, [field]: null }));
-  };
-
   if (!user) return null;
 
-  // Celebration popup
-  if (showSuccess) return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
-      <style>{`
-        @keyframes popIn { 0%{transform:scale(0.5);opacity:0} 70%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
-        @keyframes confettiFall { 0%{transform:translateY(-20px) rotate(0deg);opacity:1} 100%{transform:translateY(120px) rotate(720deg);opacity:0} }
-        .confetti-piece { position:absolute; width:10px; height:10px; border-radius:2px; animation:confettiFall 1.8s ease-in forwards; }
-      `}</style>
-      {/* Confetti */}
-      {["#f5c518","#3b1f0e","#5a8a3c","#e65100","#1565c0","#6a1b9a","#c62828","#f57f17"].map((color, i) => (
-        <div key={i} className="confetti-piece" style={{ background: color, left: `${10 + i * 11}%`, top: "10%", animationDelay: `${i * 0.15}s` }} />
-      ))}
-      {[..."🎉🌾✨🎊💚"].map((e, i) => (
-        <div key={"e"+i} className="confetti-piece" style={{ fontSize: 16, background: "transparent", left: `${5 + i * 18}%`, top: "15%", animationDelay: `${0.3 + i * 0.2}s` }}>{e}</div>
-      ))}
-      {/* Card */}
-      <div style={{ background: "#fff", borderRadius: 24, padding: "40px 32px", textAlign: "center", animation: "popIn 0.5s ease-out", maxWidth: 300, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
-        <div style={{ fontSize: 64, marginBottom: 12 }}>🎉</div>
-        <h2 style={{ fontSize: 22, fontWeight: 800, color: "#2e7d32", fontFamily: "var(--font-display)", marginBottom: 8 }}>Order Placed!</h2>
-        <p style={{ fontSize: 14, color: "#555", lineHeight: 1.6 }}>Your order has been placed successfully. We'll confirm it shortly!</p>
-        <div style={{ marginTop: 20, padding: "10px 16px", background: "#f1f8e9", borderRadius: 10 }}>
-          <p style={{ fontSize: 12, color: "#33691e", fontWeight: 600 }}>Taking you to order tracking...</p>
-        </div>
-      </div>
-    </div>
-  );
+  // Show success popup
+  if (successOrderId) return <OrderSuccessPopup orderId={successOrderId} />;
+
+  const deliveryOptionStyle = (active) => ({
+    flex: 1, padding: "14px 10px",
+    border: `2px solid ${active ? "var(--brown-dark)" : "var(--border)"}`,
+    borderRadius: "var(--radius-md)",
+    background: active ? "#f5ede4" : "#fff",
+    cursor: "pointer", textAlign: "left",
+  });
 
   return (
     <div style={s.page}>
@@ -150,36 +165,57 @@ export default function CheckoutPage() {
         <span style={s.title}>{t.checkout}</span>
       </div>
 
-      {/* Delivery Details */}
+      {/* Delivery Address */}
       <div style={s.section}>
-        <p style={s.sectionTitle}>{t.deliveryDetails}</p>
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <p style={s.sectionTitle}>Delivery Address</p>
+        {addresses.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "10px 0" }}>
+            <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 12 }}>No saved addresses. Add one to continue.</p>
+            <button
+              onClick={() => navigate("/saved-addresses", { state: { fromCheckout: true } })}
+              style={{ padding: "10px 20px", background: "var(--brown-dark)", color: "#fff", border: "none", borderRadius: "var(--radius-md)", fontWeight: 700, cursor: "pointer" }}
+            >
+              + Add Delivery Address
+            </button>
+          </div>
+        ) : (
           <div>
-            <label style={s.label}>{t.fullName}</label>
-            <input style={{ ...s.input, borderColor: errors.name ? "#e55" : "var(--border)" }} value={form.name} onChange={inp("name")} placeholder="Enter your full name" />
-            {errors.name && <span style={{ fontSize: "11px", color: "#e55" }}>{errors.name}</span>}
+            {addresses.map(addr => (
+              <div
+                key={addr.id}
+                onClick={() => setSelectedAddress(addr)}
+                style={{ padding: "12px 14px", borderRadius: "var(--radius-sm)", border: `2px solid ${selectedAddress?.id === addr.id ? "var(--brown-dark)" : "var(--border)"}`, background: selectedAddress?.id === addr.id ? "#f5ede4" : "#fff", marginBottom: 8, cursor: "pointer" }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: "var(--brown-dark)", textTransform: "uppercase" }}>{addr.label}</span>
+                  {selectedAddress?.id === addr.id && <span style={{ fontSize: 11, fontWeight: 700, color: "#2e7d32" }}>Selected</span>}
+                </div>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", marginTop: 4 }}>{addr.name}</p>
+                <p style={{ fontSize: 12, color: "var(--text-muted)" }}>{addr.address}, {addr.city} — {addr.pincode}</p>
+              </div>
+            ))}
+            {errors.address && <p style={{ fontSize: 11, color: "#e55", marginTop: 4 }}>{errors.address}</p>}
+            <button
+              onClick={() => navigate("/saved-addresses", { state: { fromCheckout: true } })}
+              style={{ marginTop: 8, padding: "8px 16px", background: "var(--cream-2)", color: "var(--brown-dark)", border: "1.5px solid var(--border)", borderRadius: "var(--radius-full)", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+            >
+              + Add New Address
+            </button>
           </div>
-          <div>
-            <label style={s.label}>{t.mobileNumber}</label>
-            <input style={{ ...s.input, borderColor: errors.mobile ? "#e55" : "var(--border)" }} value={form.mobile} onChange={inp("mobile")} placeholder="10-digit mobile number" maxLength={10} />
-            {errors.mobile && <span style={{ fontSize: "11px", color: "#e55" }}>{errors.mobile}</span>}
-          </div>
-          <div>
-            <label style={s.label}>{t.address}</label>
-            <textarea style={{ ...s.input, height: "70px", resize: "none", borderColor: errors.address ? "#e55" : "var(--border)" }} value={form.address} onChange={inp("address")} placeholder="House no., Street, Area" />
-            {errors.address && <span style={{ fontSize: "11px", color: "#e55" }}>{errors.address}</span>}
-          </div>
-          <div style={s.row}>
-            <div style={{ flex: 1 }}>
-              <label style={s.label}>{t.city}</label>
-              <input style={{ ...s.input, background: "var(--cream-3)", color: "var(--text-muted)" }} value={form.city} readOnly />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={s.label}>{t.pincode}</label>
-              <input style={{ ...s.input, borderColor: errors.pincode ? "#e55" : "var(--border)" }} value={form.pincode} onChange={inp("pincode")} placeholder="530001" maxLength={6} />
-              {errors.pincode && <span style={{ fontSize: "11px", color: "#e55" }}>{errors.pincode}</span>}
-            </div>
-          </div>
+        )}
+      </div>
+
+      {/* Mobile Number */}
+      <div style={s.section}>
+        <p style={s.sectionTitle}>Contact</p>
+        <div>
+          <label style={s.label}>{t.mobileNumber}</label>
+          <input
+            style={{ ...s.input, borderColor: errors.mobile ? "#e55" : "var(--border)" }}
+            value={mobile} onChange={e => { setMobile(e.target.value); setErrors(er => ({ ...er, mobile: null })); }}
+            placeholder="10-digit mobile number" maxLength={10}
+          />
+          {errors.mobile && <span style={{ fontSize: "11px", color: "#e55" }}>{errors.mobile}</span>}
         </div>
       </div>
 
@@ -187,23 +223,15 @@ export default function CheckoutPage() {
       <div style={s.section}>
         <p style={s.sectionTitle}>Delivery Type</p>
         <div style={s.row}>
-          <button
-            onClick={() => setDelivery("eco")}
-            style={{ flex: 1, padding: "14px 10px", border: `2px solid ${delivery === "eco" ? "#2e7d32" : "var(--border)"}`, borderRadius: "var(--radius-md)", background: delivery === "eco" ? "#f1f8e9" : "#fff", cursor: "pointer", textAlign: "left" }}
-          >
-            <div style={{ fontSize: "22px", marginBottom: "4px" }}>🌿</div>
-            <div style={{ fontSize: "13px", fontWeight: "700", color: delivery === "eco" ? "#2e7d32" : "var(--text)" }}>Eco Delivery</div>
-            <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>Standard speed</div>
-            <div style={{ fontSize: "13px", fontWeight: "800", color: "#2e7d32", marginTop: "4px" }}>₹{Math.round(subtotal * 0.10)} (10%)</div>
+          <button onClick={() => setDelivery("eco")} style={deliveryOptionStyle(delivery === "eco")}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: delivery === "eco" ? "var(--brown-dark)" : "var(--text)", marginBottom: 2 }}>Eco Delivery</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}>Standard speed</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "var(--brown-dark)" }}>₹{Math.round(subtotal * 0.10)}</div>
           </button>
-          <button
-            onClick={() => setDelivery("rapid")}
-            style={{ flex: 1, padding: "14px 10px", border: `2px solid ${delivery === "rapid" ? "#e65100" : "var(--border)"}`, borderRadius: "var(--radius-md)", background: delivery === "rapid" ? "#fff3e0" : "#fff", cursor: "pointer", textAlign: "left" }}
-          >
-            <div style={{ fontSize: "22px", marginBottom: "4px" }}>⚡</div>
-            <div style={{ fontSize: "13px", fontWeight: "700", color: delivery === "rapid" ? "#e65100" : "var(--text)" }}>Rapid Delivery</div>
-            <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>Priority speed</div>
-            <div style={{ fontSize: "13px", fontWeight: "800", color: "#e65100", marginTop: "4px" }}>₹{Math.round(subtotal * 0.15)} (15%)</div>
+          <button onClick={() => setDelivery("rapid")} style={deliveryOptionStyle(delivery === "rapid")}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: delivery === "rapid" ? "var(--brown-dark)" : "var(--text)", marginBottom: 2 }}>Rapid Delivery</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}>Priority speed</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "var(--brown-dark)" }}>₹{Math.round(subtotal * 0.15)}</div>
           </button>
         </div>
       </div>
@@ -212,14 +240,12 @@ export default function CheckoutPage() {
       <div style={s.section}>
         <p style={s.sectionTitle}>{t.paymentMethod}</p>
         <div style={s.row}>
-          <button style={s.payBtn(payment === "cod")} onClick={() => setPayment("cod")}>
-            <span style={{ fontSize: "22px" }}>💵</span>
-            <span>{t.cod}</span>
-          </button>
-          <button style={s.payBtn(payment === "online")} onClick={() => setPayment("online")}>
-            <span style={{ fontSize: "22px" }}>📱</span>
-            <span>{t.online}</span>
-          </button>
+          {[{ key: "cod", label: "Cash on Delivery" }, { key: "online", label: "Online Payment" }].map(opt => (
+            <button key={opt.key} onClick={() => setPayment(opt.key)}
+              style={{ flex: 1, padding: "12px 10px", border: `1.5px solid ${payment === opt.key ? "var(--brown-dark)" : "var(--border)"}`, borderRadius: "var(--radius-md)", background: payment === opt.key ? "#f5ede4" : "#fff", fontSize: 13, fontWeight: 600, color: payment === opt.key ? "var(--brown-dark)" : "var(--text-muted)", cursor: "pointer" }}>
+              {opt.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -235,23 +261,22 @@ export default function CheckoutPage() {
         <div style={{ borderTop: "1px solid var(--border)", marginTop: "10px", paddingTop: "10px" }}>
           <div style={s.summaryRow}>
             <span>Subtotal</span>
-            <span style={{ fontWeight: "600", color: "var(--text)" }}>₹{subtotal}</span>
+            <span style={{ fontWeight: 600, color: "var(--text)" }}>₹{subtotal}</span>
           </div>
           <div style={s.summaryRow}>
-            <span>{delivery === "eco" ? "🌿 Eco Delivery (10%)" : "⚡ Rapid Delivery (15%)"}</span>
-            <span style={{ fontWeight: "600", color: "var(--text)" }}>₹{deliveryFee}</span>
+            <span>{delivery === "eco" ? "Eco Delivery" : "Rapid Delivery"}</span>
+            <span style={{ fontWeight: 600, color: "var(--text)" }}>₹{deliveryFee}</span>
           </div>
           <div style={{ ...s.summaryRow, fontSize: "16px", fontWeight: "700", color: "var(--brown-dark)" }}>
-            <span>{t.toPay}</span>
+            <span>Total</span>
             <span>₹{total}</span>
           </div>
         </div>
         <button
-          style={{ ...s.placeBtn, opacity: placing ? 0.7 : 1, cursor: placing ? "not-allowed" : "pointer" }}
-          onClick={handlePlace}
-          disabled={placing}
+          style={{ width: "100%", padding: "16px", background: placing ? "var(--brown)" : "var(--brown-dark)", color: "#fff", border: "none", borderRadius: "var(--radius-md)", fontSize: "16px", fontWeight: "700", cursor: placing ? "not-allowed" : "pointer", margin: "14px 0", fontFamily: "var(--font-body)", opacity: placing ? 0.7 : 1 }}
+          onClick={handlePlace} disabled={placing}
         >
-          {placing ? "Placing Order..." : `${t.placeOrder} · ₹${total}`}
+          {placing ? "Placing Order..." : `Place Order · ₹${total}`}
         </button>
       </div>
     </div>

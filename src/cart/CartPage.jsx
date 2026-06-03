@@ -31,7 +31,7 @@ function CartPage() {
 
       {cart.length === 0 ? (
         <div style={{ textAlign: "center", padding: "70px 20px" }}>
-          <div style={{ fontSize: "64px", marginBottom: "16px" }}>🛒</div>
+          <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-muted)", marginBottom: "16px", letterSpacing: 2, textTransform: "uppercase" }}>Empty Cart</div>
           <h3 style={{ color: "var(--brown-dark)", fontFamily: "var(--font-display)", fontSize: "20px", marginBottom: "8px" }}>{t.cartEmpty}</h3>
           <button onClick={() => navigate("/")} style={{ marginTop: "16px", padding: "12px 28px", background: "var(--brown-dark)", color: "#fff", border: "none", borderRadius: "var(--radius-md)", cursor: "pointer", fontWeight: "700", fontSize: "14px", fontFamily: "var(--font-body)" }}>
             {t.shopNowBtn}

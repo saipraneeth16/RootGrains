@@ -7,10 +7,10 @@ import { doc, onSnapshot } from "firebase/firestore";
 const STATUS_STEPS = ["pending", "confirmed", "dispatched", "delivered"];
 
 const STEP_META = {
-  pending:    { icon: "📋", label: "Order Placed",   desc: "We've received your order" },
-  confirmed:  { icon: "✅", label: "Confirmed",       desc: "Your order is confirmed" },
-  dispatched: { icon: "📦", label: "Out for Delivery",desc: "Your order is on the way" },
-  delivered:  { icon: "🏠", label: "Delivered",       desc: "Order delivered successfully" },
+  pending:    { icon: "1", label: "Order Placed",    desc: "We've received your order" },
+  confirmed:  { icon: "2", label: "Confirmed",        desc: "Your order is confirmed" },
+  dispatched: { icon: "3", label: "Out for Delivery", desc: "Your order is on the way" },
+  delivered:  { icon: "✓", label: "Delivered",        desc: "Order delivered successfully" },
 };
 
 const STATUS_COLORS = {
@@ -72,7 +72,7 @@ export default function OrderTrackingPage() {
 
       {/* Order placed success card */}
       <div style={{ background: isCancelled ? "#c62828" : "#2e7d32", margin: "14px", borderRadius: "16px", padding: "20px 18px", color: "#fff" }}>
-        <div style={{ fontSize: "32px", marginBottom: "8px" }}>{isCancelled ? "❌" : "🎉"}</div>
+        <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 800, color: "#fff", marginBottom: 8 }}>{isCancelled ? "✕" : "✓"}</div>
         <p style={{ fontSize: "18px", fontWeight: "800", marginBottom: "4px", fontFamily: "var(--font-display)" }}>
           {isCancelled ? "Order Cancelled" : "Order Placed Successfully!"}
         </p>

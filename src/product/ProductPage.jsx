@@ -142,8 +142,7 @@ function ProductPage() {
         </div>
 
         {/* Storage note */}
-        <div style={{ background: "#f1f8e9", border: "1px solid #c8e6c9", borderRadius: 10, padding: "10px 14px", marginBottom: 16, display: "flex", gap: 10, alignItems: "flex-start" }}>
-          <span style={{ fontSize: 18 }}>ℹ️</span>
+        <div style={{ background: "#f1f8e9", border: "1px solid #c8e6c9", borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
           <p style={{ fontSize: 12, color: "#33691e", lineHeight: 1.6 }}>
             <strong>Shelf life</strong> depends upon storage conditions. For best quality, store in a <strong>cool and dry place</strong>.
           </p>
@@ -151,7 +150,6 @@ function ProductPage() {
 
         {/* WhatsApp */}
         <a href="https://wa.me/919999999999" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 10, background: "#e8f5e9", borderRadius: 10, padding: "12px 16px", textDecoration: "none", marginBottom: 16 }}>
-          <span style={{ fontSize: 22 }}>💬</span>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#2e7d32" }}>{t.whatsapp || "Chat on WhatsApp"}</div>
             <div style={{ fontSize: 11, color: "#888" }}>Quick response guaranteed</div>

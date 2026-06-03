@@ -139,6 +139,28 @@ export async function logPageView(page) {
   await setDoc(ref, { [page]: increment(1), date: today }, { merge: true });
 }
 
+// ─── USER ADDRESSES ──────────────────────────────────────────────────────────
+export async function getUserAddresses(uid) {
+  const snap = await getDoc(doc(db, "customers", uid));
+  return snap.exists() ? (snap.data().addresses || []) : [];
+}
+
+export async function saveUserAddress(uid, address) {
+  const snap = await getDoc(doc(db, "customers", uid));
+  const existing = snap.exists() ? (snap.data().addresses || []) : [];
+  const updated = [...existing, { ...address, id: Date.now().toString() }];
+  await setDoc(doc(db, "customers", uid), { addresses: updated }, { merge: true });
+  return updated;
+}
+
+export async function deleteUserAddress(uid, addressId) {
+  const snap = await getDoc(doc(db, "customers", uid));
+  const existing = snap.exists() ? (snap.data().addresses || []) : [];
+  const updated = existing.filter(a => a.id !== addressId);
+  await setDoc(doc(db, "customers", uid), { addresses: updated }, { merge: true });
+  return updated;
+}
+
 // ─── GET ORDERS FOR A SPECIFIC USER ──────────────────────────────────────────
 export async function getUserOrders(userId) {
   const snap = await getDocs(
