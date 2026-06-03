@@ -6,8 +6,8 @@ import { useState, useEffect } from "react";
 // Save your photos to the /public folder as hero1.jpg and hero2.jpg
 const SLIDES = [
   { img: "/hero.png",    label: "Pure Grains" },
-  { img: "/hero1.jpg",   label: "Farm Fresh" },
-  { img: "/hero2.jpg",   label: "Daily Staple" },
+  { img: "/hero1.webp",   label: "Farm Fresh" },
+  { img: "/hero2.webp",   label: "Daily Staple" },
 ];
 
 function Hero() {
