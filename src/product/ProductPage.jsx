@@ -133,14 +133,20 @@ function ProductPage() {
             [t.type || "Type", productType],
             ["Selected Weight", selected.weight],
             ["Price per kg", `₹${selected.perKgPrice}/kg`],
-            ["Shelf Life", product.shelfLife || "12 months"],
-            ["Storage", "Store in a cool, dry place"],
           ].map(([label, value]) => (
             <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid #f5f0ea", fontSize: 13 }}>
               <span style={{ color: "#888" }}>{label}</span>
               <span style={{ fontWeight: 600, color: "#333" }}>{value}</span>
             </div>
           ))}
+        </div>
+
+        {/* Storage note */}
+        <div style={{ background: "#f1f8e9", border: "1px solid #c8e6c9", borderRadius: 10, padding: "10px 14px", marginBottom: 16, display: "flex", gap: 10, alignItems: "flex-start" }}>
+          <span style={{ fontSize: 18 }}>ℹ️</span>
+          <p style={{ fontSize: 12, color: "#33691e", lineHeight: 1.6 }}>
+            <strong>Shelf life</strong> depends upon storage conditions. For best quality, store in a <strong>cool and dry place</strong>.
+          </p>
         </div>
 
         {/* WhatsApp */}

@@ -37,6 +37,7 @@ export default function CheckoutPage() {
   const [payment, setPayment] = useState("cod");
   const [errors, setErrors] = useState({});
   const [placing, setPlacing] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   // Redirect to login if not signed in
   useEffect(() => {
@@ -94,9 +95,13 @@ export default function CheckoutPage() {
       });
       logPageView("checkout");
       clearCart();
-      navigate(`/order-tracking/${firestoreId}`, {
-        state: { orderId: firestoreId, form, delivery, deliveryFee, payment, subtotal, total, items: cart },
-      });
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        navigate(`/order-tracking/${firestoreId}`, {
+          state: { orderId: firestoreId, form, delivery, deliveryFee, payment, subtotal, total, items: cart },
+        });
+      }, 2500);
     } catch (err) {
       console.error("Order failed:", err);
       alert("Order failed: " + err.message);
@@ -110,6 +115,33 @@ export default function CheckoutPage() {
   };
 
   if (!user) return null;
+
+  // Celebration popup
+  if (showSuccess) return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
+      <style>{`
+        @keyframes popIn { 0%{transform:scale(0.5);opacity:0} 70%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
+        @keyframes confettiFall { 0%{transform:translateY(-20px) rotate(0deg);opacity:1} 100%{transform:translateY(120px) rotate(720deg);opacity:0} }
+        .confetti-piece { position:absolute; width:10px; height:10px; border-radius:2px; animation:confettiFall 1.8s ease-in forwards; }
+      `}</style>
+      {/* Confetti */}
+      {["#f5c518","#3b1f0e","#5a8a3c","#e65100","#1565c0","#6a1b9a","#c62828","#f57f17"].map((color, i) => (
+        <div key={i} className="confetti-piece" style={{ background: color, left: `${10 + i * 11}%`, top: "10%", animationDelay: `${i * 0.15}s` }} />
+      ))}
+      {[..."🎉🌾✨🎊💚"].map((e, i) => (
+        <div key={"e"+i} className="confetti-piece" style={{ fontSize: 16, background: "transparent", left: `${5 + i * 18}%`, top: "15%", animationDelay: `${0.3 + i * 0.2}s` }}>{e}</div>
+      ))}
+      {/* Card */}
+      <div style={{ background: "#fff", borderRadius: 24, padding: "40px 32px", textAlign: "center", animation: "popIn 0.5s ease-out", maxWidth: 300, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+        <div style={{ fontSize: 64, marginBottom: 12 }}>🎉</div>
+        <h2 style={{ fontSize: 22, fontWeight: 800, color: "#2e7d32", fontFamily: "var(--font-display)", marginBottom: 8 }}>Order Placed!</h2>
+        <p style={{ fontSize: 14, color: "#555", lineHeight: 1.6 }}>Your order has been placed successfully. We'll confirm it shortly!</p>
+        <div style={{ marginTop: 20, padding: "10px 16px", background: "#f1f8e9", borderRadius: 10 }}>
+          <p style={{ fontSize: 12, color: "#33691e", fontWeight: 600 }}>Taking you to order tracking...</p>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div style={s.page}>

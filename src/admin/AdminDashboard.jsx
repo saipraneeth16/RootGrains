@@ -203,7 +203,7 @@ function resizeImage(file, maxDim = 900, quality = 0.8) {
 }
 
 function ProductsView({ products, onAdd, onDelete, onUpdate }) {
-  const emptyForm = { name: "", category: "non-basmati", subCategories: [], shelfLife: "12 months", stock: "", description: "", imageUrl: "", active: true };
+  const emptyForm = { name: "", category: "non-basmati", subCategories: [], stock: "", description: "", imageUrl: "", active: true };
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [variants, setVariants] = useState(defaultVariants("non-basmati"));
@@ -260,7 +260,6 @@ function ProductsView({ products, onAdd, onDelete, onUpdate }) {
       subCategories: form.subCategories,
       // backward compat: keep subCategory as first item
       subCategory: form.subCategories[0] || "",
-      shelfLife: form.shelfLife || "12 months",
       stock: Number(form.stock) || 0,
       description: form.description || "",
       imageUrl: form.imageUrl || "",
@@ -292,7 +291,6 @@ function ProductsView({ products, onAdd, onDelete, onUpdate }) {
       name: p.name || p.nameKey || "",
       category: cat,
       subCategories: p.subCategories || (p.subCategory ? [p.subCategory] : []),
-      shelfLife: p.shelfLife || "12 months",
       stock: p.stock || "",
       description: p.description || "",
       imageUrl: p.imageUrl || p.image || p.img || "",
@@ -333,11 +331,6 @@ function ProductsView({ products, onAdd, onDelete, onUpdate }) {
               </select>
             </div>
 
-            {/* Shelf Life */}
-            <div>
-              <label style={lbl}>Shelf Life</label>
-              <input style={inp} value={form.shelfLife} onChange={e => setForm(f => ({ ...f, shelfLife: e.target.value }))} placeholder="e.g. 12 months" />
-            </div>
 
             {/* Sub-categories (non-basmati only, multi-select) */}
             {form.category === "non-basmati" && (
