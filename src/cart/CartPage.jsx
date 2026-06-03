@@ -64,8 +64,8 @@ function CartPage() {
               <span>₹{subtotal}</span>
             </div>
             <div className="cart-summary-row">
-              <span>{t.deliveryFee}</span>
-              <span style={{ color: "var(--olive)", fontWeight: "700" }}>{t.free}</span>
+              <span>Delivery fee</span>
+              <span style={{ color: "var(--text-muted)", fontSize: "12px" }}>Calculated at checkout</span>
             </div>
             <div className="cart-summary-divider" />
             <div className="cart-summary-row total">
