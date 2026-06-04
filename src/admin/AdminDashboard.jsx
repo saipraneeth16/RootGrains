@@ -100,18 +100,128 @@ function OrdersView({ orders, onStatusUpdate }) {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState(null);
-  const filtered = orders.filter(o => (filter === "all" || o.status === filter) && (!search || o.customerName?.toLowerCase().includes(search.toLowerCase()) || o.id.includes(search)));
+  const [dateMode, setDateMode] = useState("all"); // "all" | "day" | "range" | "month"
+  const [selectedDates, setSelectedDates] = useState([]); // array of "YYYY-MM-DD" strings
+  const [rangeFrom, setRangeFrom] = useState("");
+  const [rangeTo, setRangeTo] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState("");
+
+  // Toggle a single date in/out of selectedDates
+  const toggleDate = (d) => {
+    setSelectedDates(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
+  };
+
+  // Filter orders by date selection
+  const dateFiltered = orders.filter(o => {
+    if (dateMode === "all") return true;
+    const d = o.createdAt?.toDate?.();
+    if (!d) return false;
+    const dateStr = d.toISOString().split("T")[0];
+    if (dateMode === "day") return selectedDates.includes(dateStr);
+    if (dateMode === "range") {
+      if (!rangeFrom || !rangeTo) return true;
+      return dateStr >= rangeFrom && dateStr <= rangeTo;
+    }
+    if (dateMode === "month") {
+      if (!selectedMonth) return true;
+      return dateStr.startsWith(selectedMonth);
+    }
+    return true;
+  });
+
+  const filtered = dateFiltered.filter(o =>
+    (filter === "all" || o.status === filter) &&
+    (!search || o.customerName?.toLowerCase().includes(search.toLowerCase()) || o.id.includes(search))
+  );
+
+  const periodRevenue = dateFiltered.filter(o => o.status === "delivered").reduce((s, o) => s + (o.total || 0), 0);
+  const periodOrders = dateFiltered.length;
+
+  const today = new Date().toISOString().split("T")[0];
+
   return (
     <div>
       <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 16, color: "#3b1f0e" }}>Orders</h2>
+
+      {/* Date Filter */}
+      <div style={{ background: "#fff", borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+          {[["all","All Orders"],["day","By Date"],["range","Date Range"],["month","By Month"]].map(([key,label]) => (
+            <button key={key} onClick={() => { setDateMode(key); setSelectedDates([]); }}
+              style={{ padding: "6px 14px", borderRadius: 20, border: "none", background: dateMode === key ? "#3b1f0e" : "#f0ece8", color: dateMode === key ? "#fff" : "#555", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {dateMode === "day" && (
+          <div>
+            <div style={{ fontSize: 12, color: "#888", marginBottom: 8 }}>Click dates to select/deselect. Multiple dates can be selected.</div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <input type="date" max={today}
+                onChange={e => e.target.value && toggleDate(e.target.value)}
+                style={{ padding: "7px 10px", border: "1.5px solid #ddd", borderRadius: 8, fontSize: 13, cursor: "pointer" }} />
+              {selectedDates.length > 0 && (
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {selectedDates.sort().map(d => (
+                    <span key={d} style={{ background: "#3b1f0e", color: "#fff", padding: "4px 10px", borderRadius: 20, fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                      {new Date(d + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
+                      <button onClick={() => toggleDate(d)} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+                    </span>
+                  ))}
+                  <button onClick={() => setSelectedDates([])} style={{ padding: "4px 10px", background: "#ffebee", color: "#c62828", border: "none", borderRadius: 20, fontSize: 12, cursor: "pointer" }}>Clear</button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {dateMode === "range" && (
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <div><label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 4 }}>From</label>
+              <input type="date" value={rangeFrom} max={today} onChange={e => setRangeFrom(e.target.value)}
+                style={{ padding: "7px 10px", border: "1.5px solid #ddd", borderRadius: 8, fontSize: 13 }} /></div>
+            <div style={{ marginTop: 16, color: "#888" }}>→</div>
+            <div><label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 4 }}>To</label>
+              <input type="date" value={rangeTo} min={rangeFrom} max={today} onChange={e => setRangeTo(e.target.value)}
+                style={{ padding: "7px 10px", border: "1.5px solid #ddd", borderRadius: 8, fontSize: 13 }} /></div>
+            {(rangeFrom || rangeTo) && <button onClick={() => { setRangeFrom(""); setRangeTo(""); }} style={{ marginTop: 16, padding: "7px 14px", background: "#ffebee", color: "#c62828", border: "none", borderRadius: 8, fontSize: 12, cursor: "pointer" }}>Clear</button>}
+          </div>
+        )}
+
+        {dateMode === "month" && (
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <input type="month" value={selectedMonth} max={today.slice(0, 7)} onChange={e => setSelectedMonth(e.target.value)}
+              style={{ padding: "7px 10px", border: "1.5px solid #ddd", borderRadius: 8, fontSize: 13 }} />
+            {selectedMonth && <button onClick={() => setSelectedMonth("")} style={{ padding: "7px 14px", background: "#ffebee", color: "#c62828", border: "none", borderRadius: 8, fontSize: 12, cursor: "pointer" }}>Clear</button>}
+          </div>
+        )}
+
+        {/* Period Summary */}
+        {dateMode !== "all" && (
+          <div style={{ display: "flex", gap: 14, marginTop: 14, padding: 12, background: "#f9f6f2", borderRadius: 10 }}>
+            <div><div style={{ fontSize: 20, fontWeight: 800, color: "#3b1f0e" }}>{periodOrders}</div><div style={{ fontSize: 11, color: "#888" }}>Orders in period</div></div>
+            <div style={{ width: 1, background: "#e0d8d0" }} />
+            <div><div style={{ fontSize: 20, fontWeight: 800, color: "#2e7d32" }}>₹{periodRevenue.toLocaleString("en-IN")}</div><div style={{ fontSize: 11, color: "#888" }}>Revenue (delivered)</div></div>
+          </div>
+        )}
+      </div>
+
+      {/* Status + Search */}
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or ID..." style={{ flex: 1, minWidth: 180, padding: "9px 14px", border: "1.5px solid #ddd", borderRadius: 8, fontSize: 13 }} />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or ID..."
+          style={{ flex: 1, minWidth: 180, padding: "9px 14px", border: "1.5px solid #ddd", borderRadius: 8, fontSize: 13 }} />
         {["all","pending","confirmed","dispatched","delivered","cancelled"].map(s => (
-          <button key={s} onClick={() => setFilter(s)} style={{ padding: "7px 14px", borderRadius: 20, border: "none", background: filter === s ? "#3b1f0e" : "#f0ece8", color: filter === s ? "#fff" : "#555", fontSize: 12, cursor: "pointer", fontWeight: 600, textTransform: "capitalize" }}>{s === "all" ? "All" : statusColors[s]?.label}</button>
+          <button key={s} onClick={() => setFilter(s)}
+            style={{ padding: "7px 14px", borderRadius: 20, border: "none", background: filter === s ? "#3b1f0e" : "#f0ece8", color: filter === s ? "#fff" : "#555", fontSize: 12, cursor: "pointer", fontWeight: 600, textTransform: "capitalize" }}>
+            {s === "all" ? "All" : statusColors[s]?.label}
+          </button>
         ))}
       </div>
-      {filtered.length === 0 ? <div style={{ background: "#fff", borderRadius: 12, padding: 40, textAlign: "center", color: "#aaa" }}>No orders found.</div> :
-        filtered.map(o => {
+
+      {filtered.length === 0
+        ? <div style={{ background: "#fff", borderRadius: 12, padding: 40, textAlign: "center", color: "#aaa" }}>No orders found.</div>
+        : filtered.map(o => {
           const sc = statusColors[o.status] || statusColors.pending;
           const createdAt = o.createdAt?.toDate?.() || new Date();
           const isExpanded = expandedId === o.id;
@@ -129,12 +239,12 @@ function OrdersView({ orders, onStatusUpdate }) {
               {isExpanded && (
                 <div style={{ padding: "0 18px 16px", borderTop: "1px solid #f0ece8", background: "#faf8f5" }}>
                   <div style={{ fontSize: 13, color: "#555", margin: "10px 0 4px" }}><strong>Items:</strong> {o.items?.map(i => `${i.name} ${i.weight || ""} ×${i.qty}`).join(", ")}</div>
-                  <div style={{ fontSize: 13, color: "#555", marginBottom: 4 }}>📍 {o.address}, {o.city} - {o.pincode}</div>
-                  <div style={{ fontSize: 13, color: "#555", marginBottom: 12 }}>🚚 {o.deliveryType === "rapid" ? "⚡ Rapid Delivery" : "🌿 Eco Delivery"} · 💳 {o.payment?.toUpperCase()}</div>
+                  <div style={{ fontSize: 13, color: "#555", marginBottom: 4 }}>{o.address}, {o.city} - {o.pincode}</div>
+                  <div style={{ fontSize: 13, color: "#555", marginBottom: 12 }}>{o.deliveryType === "rapid" ? "Rapid Delivery" : "Eco Delivery"} · {o.payment?.toUpperCase()}</div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {nextStatus[o.status] && <button onClick={() => onStatusUpdate(o.id, nextStatus[o.status])} style={{ padding: "8px 16px", background: "#3b1f0e", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Mark as {statusColors[nextStatus[o.status]]?.label} →</button>}
                     {o.status !== "cancelled" && o.status !== "delivered" && <button onClick={() => onStatusUpdate(o.id, "cancelled")} style={{ padding: "8px 16px", background: "#ffebee", color: "#c62828", border: "none", borderRadius: 8, fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Cancel Order</button>}
-                    {o.status === "dispatched" && <button onClick={() => window.open(`https://www.google.com/maps?q=${encodeURIComponent((o.address || "") + " " + (o.city || ""))}`, "_blank")} style={{ padding: "8px 16px", background: "#e3f2fd", color: "#1565c0", border: "none", borderRadius: 8, fontSize: 13, cursor: "pointer", fontWeight: 600 }}>🗺️ View on Map</button>}
+                    {o.status === "dispatched" && <button onClick={() => window.open(`https://www.google.com/maps?q=${encodeURIComponent((o.address || "") + " " + (o.city || ""))}`, "_blank")} style={{ padding: "8px 16px", background: "#e3f2fd", color: "#1565c0", border: "none", borderRadius: 8, fontSize: 13, cursor: "pointer", fontWeight: 600 }}>View on Map</button>}
                   </div>
                 </div>
               )}
@@ -455,32 +565,147 @@ function ProductsView({ products, onAdd, onDelete, onUpdate }) {
   );
 }
 
+function CustomerDetail({ customer, orders, onBack }) {
+  const customerOrders = orders.filter(o => o.customerId === customer.id).sort((a, b) => {
+    const ta = a.createdAt?.toDate?.()?.getTime() || 0;
+    const tb = b.createdAt?.toDate?.()?.getTime() || 0;
+    return tb - ta;
+  });
+  const totalSpend = customerOrders.filter(o => o.status === "delivered").reduce((s, o) => s + (o.total || 0), 0);
+
+  const deliveryTime = (order) => {
+    if (order.status !== "delivered") return null;
+    const created = order.createdAt?.toDate?.()?.getTime();
+    const updated = order.updatedAt?.toDate?.()?.getTime();
+    if (!created || !updated) return null;
+    const mins = Math.round((updated - created) / 60000);
+    if (mins < 60) return `${mins} min`;
+    const hrs = Math.floor(mins / 60);
+    const rem = mins % 60;
+    return rem > 0 ? `${hrs}h ${rem}m` : `${hrs}h`;
+  };
+
+  return (
+    <div>
+      <button onClick={onBack} style={{ marginBottom: 16, padding: "8px 16px", background: "#f0ece8", border: "none", borderRadius: 8, fontSize: 13, cursor: "pointer", fontWeight: 600 }}>← Back to Customers</button>
+
+      {/* Customer Card */}
+      <div style={{ background: "#fff", borderRadius: 12, padding: 24, marginBottom: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+        <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+          <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#f0ece8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 800, color: "#3b1f0e", flexShrink: 0 }}>
+            {(customer.name || customer.email || "?")[0].toUpperCase()}
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: 18, color: "#3b1f0e" }}>{customer.name || "—"}</div>
+            <div style={{ fontSize: 13, color: "#888", marginTop: 2 }}>{customer.email}</div>
+            <div style={{ fontSize: 13, color: "#888" }}>{customer.phone || "—"}</div>
+          </div>
+          <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
+            <div style={{ textAlign: "center", background: "#f9f6f2", borderRadius: 10, padding: "12px 20px" }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: "#3b1f0e" }}>{customerOrders.length}</div>
+              <div style={{ fontSize: 11, color: "#888" }}>Total Orders</div>
+            </div>
+            <div style={{ textAlign: "center", background: "#f9f6f2", borderRadius: 10, padding: "12px 20px" }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: "#2e7d32" }}>₹{totalSpend.toLocaleString("en-IN")}</div>
+              <div style={{ fontSize: 11, color: "#888" }}>Total Spend</div>
+            </div>
+            <div style={{ textAlign: "center", background: "#f9f6f2", borderRadius: 10, padding: "12px 20px" }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: "#1565c0" }}>{customerOrders.filter(o => o.status === "delivered").length}</div>
+              <div style={{ fontSize: 11, color: "#888" }}>Delivered</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Order History */}
+      <h3 style={{ fontSize: 15, fontWeight: 700, color: "#3b1f0e", marginBottom: 12 }}>Order History</h3>
+      {customerOrders.length === 0
+        ? <div style={{ background: "#fff", borderRadius: 12, padding: 30, textAlign: "center", color: "#aaa" }}>No orders from this customer yet.</div>
+        : customerOrders.map((o, idx) => {
+          const sc = statusColors[o.status] || statusColors.pending;
+          const createdAt = o.createdAt?.toDate?.();
+          const dt = deliveryTime(o);
+          return (
+            <div key={o.id} style={{ background: "#fff", borderRadius: 12, padding: "16px 18px", marginBottom: 10, boxShadow: "0 2px 6px rgba(0,0,0,0.05)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: "#3b1f0e" }}>Order #{o.id.slice(-8).toUpperCase()}</div>
+                  <div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>
+                    {createdAt ? createdAt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ background: sc.bg, color: sc.color, padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{sc.label}</span>
+                  <span style={{ fontWeight: 800, fontSize: 15, color: "#3b1f0e" }}>₹{o.total}</span>
+                </div>
+              </div>
+              <div style={{ fontSize: 13, color: "#555", marginBottom: 6 }}>
+                <strong>Items:</strong> {o.items?.map(i => `${i.name} ${i.weight || ""} ×${i.qty}`).join(", ") || "—"}
+              </div>
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 12, color: "#888" }}>Subtotal: ₹{o.subtotal || o.total}</span>
+                <span style={{ fontSize: 12, color: "#888" }}>Delivery: ₹{o.deliveryFee || 0} ({o.deliveryType || "eco"})</span>
+                <span style={{ fontSize: 12, color: "#888" }}>Payment: {o.payment?.toUpperCase()}</span>
+                {dt && <span style={{ fontSize: 12, fontWeight: 700, color: "#2e7d32" }}>Delivered in: {dt}</span>}
+              </div>
+            </div>
+          );
+        })
+      }
+    </div>
+  );
+}
+
 function CustomersView({ customers, orders }) {
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+
   const orderCountMap = {};
   const spendMap = {};
   orders.forEach(o => { if (o.customerId) orderCountMap[o.customerId] = (orderCountMap[o.customerId] || 0) + 1; });
   orders.filter(o => o.status === "delivered").forEach(o => { if (o.customerId) spendMap[o.customerId] = (spendMap[o.customerId] || 0) + (o.total || 0); });
+
+  if (selectedCustomer) {
+    return <CustomerDetail customer={selectedCustomer} orders={orders} onBack={() => setSelectedCustomer(null)} />;
+  }
+
   return (
     <div>
       <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 16, color: "#3b1f0e" }}>Customers</h2>
-      {customers.length === 0 ? <div style={{ background: "#fff", borderRadius: 12, padding: 40, textAlign: "center", color: "#aaa" }}>No customers yet. They'll appear here after first orders.</div> : (
-        <div style={{ background: "#fff", borderRadius: 12, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead><tr style={{ background: "#f9f6f2" }}>{["Customer","Phone","Orders","Total Spend","Joined"].map(h => <th key={h} style={{ padding: "11px 16px", textAlign: "left", fontSize: 12, fontWeight: 700, color: "#777", borderBottom: "1px solid #eee" }}>{h}</th>)}</tr></thead>
-            <tbody>
-              {customers.map(c => (
-                <tr key={c.id} style={{ borderBottom: "1px solid #f0ece8" }}>
-                  <td style={{ padding: "12px 16px" }}><div style={{ fontWeight: 600, fontSize: 14 }}>{c.name || c.displayName || "—"}</div><div style={{ fontSize: 11, color: "#aaa" }}>{c.email}</div></td>
-                  <td style={{ padding: "12px 16px", fontSize: 13, color: "#555" }}>{c.phone || "—"}</td>
-                  <td style={{ padding: "12px 16px" }}><span style={{ background: "#e3f2fd", color: "#1565c0", padding: "3px 10px", borderRadius: 12, fontSize: 12, fontWeight: 700 }}>{orderCountMap[c.id] || 0}</span></td>
-                  <td style={{ padding: "12px 16px", fontWeight: 700, color: "#2e7d32" }}>₹{(spendMap[c.id] || 0).toLocaleString("en-IN")}</td>
-                  <td style={{ padding: "12px 16px", fontSize: 12, color: "#aaa" }}>{c.createdAt?.toDate?.().toLocaleDateString("en-IN") || "—"}</td>
+      {customers.length === 0
+        ? <div style={{ background: "#fff", borderRadius: 12, padding: 40, textAlign: "center", color: "#aaa" }}>No customers yet. They'll appear here after first orders.</div>
+        : (
+          <div style={{ background: "#fff", borderRadius: 12, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "#f9f6f2" }}>
+                  {["Customer","Phone","Orders","Total Spend","Joined",""].map(h => (
+                    <th key={h} style={{ padding: "11px 16px", textAlign: "left", fontSize: 12, fontWeight: 700, color: "#777", borderBottom: "1px solid #eee" }}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {customers.map(c => (
+                  <tr key={c.id} style={{ borderBottom: "1px solid #f0ece8", cursor: "pointer" }} onClick={() => setSelectedCustomer(c)}>
+                    <td style={{ padding: "12px 16px" }}>
+                      <div style={{ fontWeight: 600, fontSize: 14 }}>{c.name || c.displayName || "—"}</div>
+                      <div style={{ fontSize: 11, color: "#aaa" }}>{c.email}</div>
+                    </td>
+                    <td style={{ padding: "12px 16px", fontSize: 13, color: "#555" }}>{c.phone || "—"}</td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <span style={{ background: "#e3f2fd", color: "#1565c0", padding: "3px 10px", borderRadius: 12, fontSize: 12, fontWeight: 700 }}>{orderCountMap[c.id] || 0}</span>
+                    </td>
+                    <td style={{ padding: "12px 16px", fontWeight: 700, color: "#2e7d32" }}>₹{(spendMap[c.id] || 0).toLocaleString("en-IN")}</td>
+                    <td style={{ padding: "12px 16px", fontSize: 12, color: "#aaa" }}>{c.createdAt?.toDate?.().toLocaleDateString("en-IN") || "—"}</td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <span style={{ fontSize: 12, color: "#1565c0", fontWeight: 600 }}>View →</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      }
     </div>
   );
 }
