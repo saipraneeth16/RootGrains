@@ -118,11 +118,11 @@ export default function ProfilePage() {
       <div style={{ background: "#fff", marginTop: "10px" }}>
         <MenuItem label={t.savedAddresses} onClick={() => navigate("/saved-addresses")} />
         <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 16px", cursor: "pointer", borderBottom: "1px solid var(--cream-3)" }} onClick={toggleLang}>
-          <span style={{ fontSize: "13px", width: "24px", textAlign: "center", fontWeight: 800, color: "var(--brown-dark)" }}></span>
           <span style={{ flex: 1, fontSize: "14px", fontWeight: "500", color: "var(--text)" }}>{t.language}</span>
           <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--gold)", background: "var(--gold-pale)", padding: "3px 10px", borderRadius: "var(--radius-full)" }}>
             {lang === "EN" ? "English" : "తెలుగు"}
           </span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
         <MenuItem label={t.notifications} onClick={() => navigate("/notifications")} />
         <MenuItem icon="?" label={t.helpSupport} onClick={() => window.open("https://wa.me/919999999999?text=Hi, I need help with my Root Grains order", "_blank")} />
