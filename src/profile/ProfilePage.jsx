@@ -118,7 +118,7 @@ export default function ProfilePage() {
       <div style={{ background: "#fff", marginTop: "10px" }}>
         <MenuItem label={t.savedAddresses} onClick={() => navigate("/saved-addresses")} />
         <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 16px", cursor: "pointer", borderBottom: "1px solid var(--cream-3)" }} onClick={toggleLang}>
-          <span style={{ fontSize: "13px", width: "24px", textAlign: "center", fontWeight: 800, color: "var(--brown-dark)" }}>🌐</span>
+          <span style={{ fontSize: "13px", width: "24px", textAlign: "center", fontWeight: 800, color: "var(--brown-dark)" }}></span>
           <span style={{ flex: 1, fontSize: "14px", fontWeight: "500", color: "var(--text)" }}>{t.language}</span>
           <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--gold)", background: "var(--gold-pale)", padding: "3px 10px", borderRadius: "var(--radius-full)" }}>
             {lang === "EN" ? "English" : "తెలుగు"}
