@@ -5,6 +5,20 @@ import { useLang } from "../LanguageContext";
 import { useCart } from "../CartContext";
 import { createOrder, saveCustomer, logPageView, getUserAddresses } from "../services/firestore";
 import { useAuth } from "../auth/AuthContext";
+import { placeOrder as placeBWOrder } from "../bw/api";
+
+// Root Grains store pickup address — update this to your actual warehouse/store address
+const RG_PICKUP_ADDRESS = "45, Koramangala 5th Block, Bangalore";
+const RG_MERCHANT_ID    = "root_grains";
+const RG_MERCHANT_NAME  = "Root Grains";
+
+// Parse weight strings like "5 kg", "10 kg", "500 g" → kg number
+function parseWeightKg(w = "") {
+  if (!w) return 1;
+  const lower = w.toLowerCase();
+  if (lower.includes("g") && !lower.includes("kg")) return parseFloat(w) / 1000;
+  return parseFloat(w) || 1;
+}
 
 const s = {
   page: { fontFamily: "var(--font-body)", background: "var(--cream)", minHeight: "100vh" },
@@ -128,6 +142,34 @@ export default function CheckoutPage() {
         items: cart.map(i => ({ id: i.id, name: i.name, weight: i.weight, qty: i.qty, price: i.price })),
       };
       const firestoreId = await createOrder(orderPayload);
+
+      // ── BW Delivery: create a linked delivery order ───────────────
+      // This makes the order appear in the Delivery tab of the admin panel.
+      // 🔌 FIREBASE: once BW uses Firestore, this placeOrder() will write
+      //   directly to the shared 'deliveryOrders' collection.
+      try {
+        const totalWeightKg = cart.reduce((sum, item) => sum + parseWeightKg(item.weight) * item.qty, 0);
+        await placeBWOrder({
+          existingOrderId: firestoreId,          // links back to this Root Grains order
+          merchantId:      RG_MERCHANT_ID,
+          merchantName:    RG_MERCHANT_NAME,
+          pickup:          RG_PICKUP_ADDRESS,
+          dropoff:         `${selectedAddress.address}, ${selectedAddress.city} - ${selectedAddress.pincode}`,
+          customer:        selectedAddress.name,
+          customerPhone:   mobile,
+          deliveryType:    delivery,             // 'rapid' | 'eco' — same choice user made
+          weight:          totalWeightKg.toFixed(1),
+          type:            "Grocery",
+          desc:            cart.map(i => `${i.name} ${i.weight} ×${i.qty}`).join(", "),
+          price:           deliveryFee,
+          distance:        "5",                  // default 5 km — replace with real distance when available
+        });
+      } catch (bwErr) {
+        // Non-fatal — order is placed even if BW delivery creation fails
+        console.warn("BW delivery creation failed:", bwErr);
+      }
+      // ─────────────────────────────────────────────────────────────
+
       await saveCustomer(user.uid, {
         name: selectedAddress.name,
         email: user.email || "",

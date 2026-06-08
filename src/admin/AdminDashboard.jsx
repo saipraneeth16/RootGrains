@@ -8,6 +8,8 @@ import {
   getCustomers, getBanners, toggleBanner, seedBannersIfEmpty, addBanner, deleteBanner,
 } from "../services/firestore";
 import { allProducts } from "../data/products";
+import DeliveryView from "../bw/DeliveryView";
+import { useOrders as useBWOrders } from "../bw/api";
 
 const statusColors = {
   pending:    { bg: "#fff8e1", color: "#f57f17", label: "Pending" },
@@ -28,6 +30,7 @@ function Sidebar({ active, setActive, onLogout }) {
     { key: "products",  icon: "🌾", label: "Products" },
     { key: "customers", icon: "👥", label: "Customers" },
     { key: "banners",   icon: "🖼️",  label: "Banners" },
+    { key: "delivery",  icon: "🚚", label: "Delivery" },
   ];
   return (
     <aside style={{ width: 200, minHeight: "100vh", background: "#3b1f0e", color: "#fff", display: "flex", flexDirection: "column", padding: "0 0 24px 0", flexShrink: 0 }}>
@@ -93,6 +96,30 @@ function DashboardView({ orders, products, customers }) {
         })}
       </div>
     </div>
+  );
+}
+
+// Small delivery status badge shown inline in each order row
+function BWDeliveryBadge({ orderId }) {
+  const { orders: bwOrders } = useBWOrders({ merchantId: "root_grains" });
+  const linked = bwOrders.find(o => o.existingOrderId === orderId);
+  if (!linked) return null;
+  const DSC = {
+    pending:    { bg: "#fff8e1", color: "#f57f17", label: "Pending" },
+    assigned:   { bg: "#e3f2fd", color: "#1565c0", label: "Assigned" },
+    confirmed:  { bg: "#e3f2fd", color: "#1565c0", label: "Confirmed" },
+    picked_up:  { bg: "#f3e5f5", color: "#6a1b9a", label: "Picked Up" },
+    in_transit: { bg: "#fff3e0", color: "#e65100", label: "In Transit" },
+    dispatched: { bg: "#f3e5f5", color: "#6a1b9a", label: "Dispatched" },
+    delivered:  { bg: "#e8f5e9", color: "#2e7d32", label: "Delivered" },
+    cancelled:  { bg: "#ffebee", color: "#c62828", label: "Cancelled" },
+  };
+  const sc = DSC[linked.status] || DSC.pending;
+  const typeLabel = linked.deliveryType === "rapid" ? "⚡ Rapid" : "🌿 Eco";
+  return (
+    <span title={`BW Delivery · ${linked.trackingId}`} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: sc.bg, color: sc.color, padding: "2px 8px", borderRadius: 12, fontSize: 11, fontWeight: 700, marginLeft: 6, cursor: "default" }}>
+      🚚 {typeLabel} · {sc.label}
+    </span>
   );
 }
 
@@ -229,7 +256,7 @@ function OrdersView({ orders, onStatusUpdate }) {
             <div key={o.id} style={{ background: "#fff", borderRadius: 12, marginBottom: 10, boxShadow: "0 2px 8px rgba(0,0,0,0.05)", overflow: "hidden" }}>
               <div onClick={() => setExpandedId(isExpanded ? null : o.id)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", cursor: "pointer", gap: 12 }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>{o.customerName || "Customer"} <span style={{ color: "#888", fontWeight: 400, fontSize: 12 }}>· {o.customerPhone}</span></div>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{o.customerName || "Customer"} <span style={{ color: "#888", fontWeight: 400, fontSize: 12 }}>· {o.customerPhone}</span><BWDeliveryBadge orderId={o.id} /></div>
                   <div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>#{o.id.slice(-8).toUpperCase()} · {createdAt.toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</div>
                 </div>
                 <div style={{ fontWeight: 800, fontSize: 15, color: "#3b1f0e" }}>₹{o.total}</div>
@@ -809,6 +836,7 @@ export default function AdminDashboard() {
       case "products":  return <ProductsView products={products} onAdd={addProduct} onDelete={deleteProduct} onUpdate={updateProduct} />;
       case "customers": return <CustomersView customers={customers} orders={orders} />;
       case "banners":   return <BannersView banners={banners} onToggle={toggleBanner} onAdd={addBanner} onDelete={deleteBanner} />;
+      case "delivery":  return <DeliveryView />;
       default: return null;
     }
   };
