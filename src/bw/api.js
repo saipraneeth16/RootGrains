@@ -27,6 +27,11 @@
 // =============================================================
 
 import { useState, useEffect } from 'react';
+import { db } from '../firebase';
+import {
+  collection, doc, addDoc, updateDoc,
+  onSnapshot, query, where, serverTimestamp,
+} from 'firebase/firestore';
 
 // ─── MOCK DATA ──────────────────────────────────────────────
 
@@ -132,13 +137,20 @@ const _emit  = () => _subs.forEach(fn => fn());
  *   return onSnapshot(q, snap => setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
  */
 export function useOrders(filters = {}) {
-  const [orders, setOrders]   = useState(() => _filter(_orders, filters));
-  const [loading, setLoading] = useState(false);
+  const [orders, setOrders]   = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const refresh = () => setOrders(_filter(_orders, filters));
-    _subs.add(refresh);
-    return () => _subs.delete(refresh);
+    let q = collection(db, 'deliveryOrders');
+    if (filters.merchantId)   q = query(q, where('merchantId',   '==', filters.merchantId));
+    if (filters.driverId)     q = query(q, where('driverId',     '==', filters.driverId));
+    if (filters.deliveryType) q = query(q, where('deliveryType', '==', filters.deliveryType));
+    if (filters.status)       q = query(q, where('status',       '==', filters.status));
+    const unsub = onSnapshot(q, snap => {
+      setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setLoading(false);
+    });
+    return unsub;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(filters)]);
 
@@ -153,15 +165,26 @@ export function useOrders(filters = {}) {
  *     snap => snap.exists() && setOrder({ id: snap.id, ...snap.data() }));
  */
 export function useOrderById(orderId) {
-  const find = () => _orders.find(o => o.id === orderId || o.trackingId === orderId) ?? null;
-  const [order, setOrder]   = useState(find);
-  const [loading, setLoading] = useState(false);
+  const [order, setOrder]   = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const refresh = () => setOrder(find());
-    _subs.add(refresh);
-    return () => _subs.delete(refresh);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!orderId) return;
+    // Try by doc ID first, fall back to querying trackingId
+    const unsub = onSnapshot(doc(db, 'deliveryOrders', orderId), snap => {
+      if (snap.exists()) {
+        setOrder({ id: snap.id, ...snap.data() });
+        setLoading(false);
+      } else {
+        // orderId might be a trackingId
+        const q = query(collection(db, 'deliveryOrders'), where('trackingId', '==', orderId));
+        onSnapshot(q, qsnap => {
+          setOrder(qsnap.empty ? null : { id: qsnap.docs[0].id, ...qsnap.docs[0].data() });
+          setLoading(false);
+        });
+      }
+    });
+    return unsub;
   }, [orderId]);
 
   return { order, loading };
@@ -206,9 +229,9 @@ export function useDrivers() {
  *   return { id: ref.id, trackingId: orderData.trackingId };
  */
 export async function placeOrder(orderData) {
-  const newOrder = {
-    id: _uid(),
-    trackingId: _trkId(),
+  const trackingId = _trkId();
+  const ref = await addDoc(collection(db, 'deliveryOrders'), {
+    trackingId,
     existingOrderId: orderData.existingOrderId ?? null,
     merchantId:      orderData.merchantId,
     merchantName:    orderData.merchantName,
@@ -216,7 +239,7 @@ export async function placeOrder(orderData) {
     dropoff:         orderData.dropoff,
     customer:        orderData.customer,
     customerPhone:   orderData.customerPhone,
-    deliveryType:    orderData.deliveryType,   // 'rapid' | 'eco'
+    deliveryType:    orderData.deliveryType,
     weight:          orderData.weight,
     type:            orderData.type,
     desc:            orderData.desc ?? '',
@@ -228,10 +251,9 @@ export async function placeOrder(orderData) {
     createdAt:    new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }),
     createdDate:  new Date().toISOString().split('T')[0],
     distance:     orderData.distance,
-  };
-  _orders = [newOrder, ..._orders];
-  _emit();
-  return { id: newOrder.id, trackingId: newOrder.trackingId };
+    createdAtTimestamp: serverTimestamp(),
+  });
+  return { id: ref.id, trackingId };
 }
 
 /**
@@ -241,8 +263,9 @@ export async function placeOrder(orderData) {
  *   await updateDoc(doc(db, 'deliveryOrders', orderId), { status, ...extra, updatedAt: serverTimestamp() });
  */
 export async function updateOrderStatus(orderId, status, extra = {}) {
-  _orders = _orders.map(o => o.id === orderId ? { ...o, status, ...extra } : o);
-  _emit();
+  await updateDoc(doc(db, 'deliveryOrders', orderId), {
+    status, ...extra, updatedAt: serverTimestamp(),
+  });
 }
 
 /**
