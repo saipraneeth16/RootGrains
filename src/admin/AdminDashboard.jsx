@@ -343,10 +343,9 @@ function BrandsView({ brands, onAdd, onUpdate, onDelete }) {
 
   const handleSubmit = async () => {
     if (!form.name.trim()) return alert("Brand name is required.");
-    if (!form.slug.trim()) return alert("Brand slug is required.");
     setSaving(true);
     try {
-      const data = { ...form, name: form.name.trim(), slug: form.slug.trim() };
+      const data = { ...form, name: form.name.trim(), slug: makeSlug(form.name.trim()) };
       if (editId) { await onUpdate(editId, data); } else { await onAdd(data); }
       resetForm(); setShowForm(false);
     } catch (err) { alert("Error: " + err.message); }
@@ -354,7 +353,7 @@ function BrandsView({ brands, onAdd, onUpdate, onDelete }) {
   };
 
   const startEdit = (b) => {
-    setForm({ name: b.name || "", slug: b.slug || "", descEN: b.descEN || "", descTE: b.descTE || "", categories: b.categories || [], tag: b.tag || "", logo: b.logo || "", active: b.active !== false });
+    setForm({ name: b.name || "", slug: "", descEN: b.descEN || "", descTE: b.descTE || "", categories: b.categories || [], tag: b.tag || "", logo: b.logo || "", active: b.active !== false });
     setLogoPreview(b.logo || "");
     setEditId(b.id);
     setShowForm(true);
@@ -373,14 +372,9 @@ function BrandsView({ brands, onAdd, onUpdate, onDelete }) {
           <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: "#3b1f0e" }}>{editId ? "Edit Brand" : "Add New Brand"}</h3>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
 
-            <div>
+            <div style={{ gridColumn: "1 / -1" }}>
               <label style={lbl}>Brand Name *</label>
-              <input style={inp} value={form.name} onChange={e => { const n = e.target.value; setForm(f => ({ ...f, name: n, slug: editId ? f.slug : makeSlug(n) })); }} placeholder="e.g. India Gate" />
-            </div>
-            <div>
-              <label style={lbl}>Slug (URL identifier) *</label>
-              <input style={inp} value={form.slug} onChange={e => setForm(f => ({ ...f, slug: makeSlug(e.target.value) }))} placeholder="e.g. india-gate" />
-              <div style={{ fontSize: 11, color: "#aaa", marginTop: 3 }}>Used in URL: /brand/<strong>{form.slug || "slug"}</strong></div>
+              <input style={inp} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. India Gate" />
             </div>
             <div>
               <label style={lbl}>Tag / Tagline</label>
