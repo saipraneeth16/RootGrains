@@ -1,46 +1,12 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "../home/Home.css";
 import { useLang } from "../LanguageContext";
 import { useCart } from "../CartContext";
 import { useProducts } from "../ProductsContext";
+import { getBrands } from "../services/firestore";
 import BottomNav from "../home/BottomNav";
 import GoToCart from "../components/GoToCart";
-
-const brandMeta = {
-  "india-gate": {
-    name: "India Gate",
-    img: "/Brands/indiagate.png",
-    descEN: "India's most trusted basmati rice brand — premium quality since 1993",
-    descTE: "భారతదేశంలో అత్యంత విశ్వసనీయమైన బాస్మతి బ్రాండ్",
-    categories: ["basmati"],
-    color: "#fff8e1",
-  },
-  "daawat": {
-    name: "Daawat",
-    img: "/Brands/daawat.png",
-    descEN: "Finest aged basmati rice — loved across Indian kitchens",
-    descTE: "ఉత్తమ నాణ్యత గల పాత బాస్మతి బియ్యం",
-    categories: ["basmati"],
-    color: "#fce4ec",
-  },
-  "kohinoor": {
-    name: "Kohinoor",
-    img: "/Brands/kohinoor.png",
-    descEN: "Premium rice collection — basmati and specialty varieties",
-    descTE: "ప్రీమియం బియ్యం సేకరణ — బాస్మతి మరియు ప్రత్యేక రకాలు",
-    categories: ["basmati", "non-basmati"],
-    color: "#f3e5f5",
-  },
-  "unity": {
-    name: "Unity",
-    img: "/Brands/unity.png",
-    descEN: "Local Visakhapatnam brand — fresh Sona Masoori & millets direct from farms",
-    descTE: "విశాఖపట్నం స్థానిక బ్రాండ్ — తాజా సోనా మసూరి & చిరుధాన్యాలు",
-    categories: ["non-basmati", "millets"],
-    color: "#f1f8e9",
-  },
-};
 
 function ProductCard({ p, t }) {
   const navigate = useNavigate();
@@ -73,7 +39,7 @@ function ProductCard({ p, t }) {
           </div>
         )}
       </div>
-      <div className="product-img"><img src={p.img} alt={name} /></div>
+      <div className="product-img"><img src={p.imageUrl || p.img} alt={name} /></div>
 
       {/* Weight dropdown */}
       <div onClick={e => e.stopPropagation()} style={{ margin: "6px 6px 2px", position: "relative" }}>
@@ -101,25 +67,59 @@ export default function BrandPage() {
   const navigate = useNavigate();
   const { t, lang } = useLang();
   const { totalItems } = useCart();
-
   const { products: allProducts } = useProducts();
-  const meta = brandMeta[slug];
 
-  // Show brand products — match by categories the brand covers
+  const [meta, setMeta] = useState(null);
+  const [loadingMeta, setLoadingMeta] = useState(true);
+
+  useEffect(() => {
+    getBrands()
+      .then(bs => {
+        const found = bs.find(b => b.slug === slug);
+        setMeta(found || null);
+      })
+      .catch(() => setMeta(null))
+      .finally(() => setLoadingMeta(false));
+  }, [slug]);
+
+  // Filter products by brand slug
   const products = meta
-    ? allProducts.filter(p => meta.categories.includes(p.category) && p.active !== false)
+    ? allProducts.filter(p => p.brand === slug && p.active !== false)
     : [];
+
+  if (loadingMeta) {
+    return (
+      <div className="mobile" style={{ background: "var(--cream)", minHeight: "100vh" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 14px", background: "#fff", borderBottom: "1px solid var(--border)" }}>
+          <button className="back-btn" onClick={() => navigate(-1)}>←</button>
+          <span style={{ fontSize: "17px", fontWeight: "700", color: "var(--brown-dark)" }}>Brand</span>
+        </div>
+        <div style={{ padding: 20 }}>
+          {[1, 2].map(i => <div key={i} style={{ height: 80, borderRadius: 12, background: "#f0ece8", marginBottom: 12 }} />)}
+        </div>
+      </div>
+    );
+  }
 
   if (!meta) {
     return (
-      <div style={{ padding: "40px", textAlign: "center" }}>
-        <p>Brand not found.</p>
-        <button onClick={() => navigate("/")}>Go Home</button>
+      <div className="mobile" style={{ background: "var(--cream)", minHeight: "100vh" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 14px", background: "#fff", borderBottom: "1px solid var(--border)" }}>
+          <button className="back-btn" onClick={() => navigate(-1)}>←</button>
+          <span style={{ fontSize: "17px", fontWeight: "700", color: "var(--brown-dark)" }}>Brand</span>
+        </div>
+        <div style={{ padding: "40px", textAlign: "center" }}>
+          <p style={{ color: "var(--text-muted)", marginBottom: 16 }}>Brand not found.</p>
+          <button onClick={() => navigate("/")} style={{ padding: "10px 20px", background: "var(--brown-dark)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700 }}>Go Home</button>
+        </div>
+        <BottomNav />
       </div>
     );
   }
 
   const desc = lang === "TE" ? meta.descTE : meta.descEN;
+  const accent = meta.accent || "var(--olive)";
+  const color = meta.color || "var(--cream-2)";
 
   return (
     <div className="mobile" style={{ background: "var(--cream)", minHeight: "100vh" }}>
@@ -130,14 +130,17 @@ export default function BrandPage() {
       </div>
 
       {/* Brand Hero */}
-      <div style={{ background: meta.color, padding: "24px 20px", display: "flex", alignItems: "center", gap: "20px", borderBottom: "1px solid var(--border)" }}>
+      <div style={{ background: color, padding: "24px 20px", display: "flex", alignItems: "center", gap: "20px", borderBottom: "1px solid var(--border)" }}>
         <div style={{ width: "80px", height: "80px", background: "#fff", borderRadius: "12px", padding: "10px", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", flexShrink: 0 }}>
-          <img src={meta.img} alt={meta.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+          {meta.logo
+            ? <img src={meta.logo} alt={meta.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+            : <span style={{ fontSize: 36 }}>🏷️</span>
+          }
         </div>
         <div>
           <h2 style={{ fontSize: "20px", fontWeight: "800", color: "var(--brown-dark)", fontFamily: "var(--font-display)", marginBottom: "6px" }}>{meta.name}</h2>
-          <p style={{ fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.5 }}>{desc}</p>
-          <p style={{ fontSize: "11px", fontWeight: "700", color: "var(--olive)", marginTop: "8px" }}>{products.length} products available</p>
+          {desc && <p style={{ fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.5 }}>{desc}</p>}
+          <p style={{ fontSize: "11px", fontWeight: "700", color: accent, marginTop: "8px" }}>{products.length} product{products.length !== 1 ? "s" : ""} available</p>
         </div>
       </div>
 
@@ -149,7 +152,8 @@ export default function BrandPage() {
         {products.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 20px" }}>
             <div style={{ fontSize: "48px", marginBottom: "12px" }}>🌾</div>
-            <p style={{ color: "var(--text-muted)", fontSize: "14px" }}>No products available for this brand.</p>
+            <p style={{ color: "var(--text-muted)", fontSize: "14px" }}>No products assigned to this brand yet.</p>
+            <p style={{ color: "var(--text-faint)", fontSize: "12px", marginTop: 8 }}>Products can be linked to brands from the Admin panel.</p>
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>

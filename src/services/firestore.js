@@ -187,3 +187,41 @@ export async function getProductById(id) {
   const snap = await getDoc(ref);
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
+
+// ─── BRANDS ──────────────────────────────────────────────────────────────────
+export function subscribeBrands(callback) {
+  return onSnapshot(collection(db, "brands"), snap =>
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+  );
+}
+
+export async function getBrands() {
+  const snap = await getDocs(collection(db, "brands"));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+export async function addBrand(data) {
+  return await addDoc(collection(db, "brands"), { ...data, createdAt: serverTimestamp() });
+}
+
+export async function updateBrand(id, data) {
+  await updateDoc(doc(db, "brands", id), { ...data, updatedAt: serverTimestamp() });
+}
+
+export async function deleteBrand(id) {
+  await deleteDoc(doc(db, "brands", id));
+}
+
+export async function seedBrandsIfEmpty() {
+  const snap = await getDocs(collection(db, "brands"));
+  if (!snap.empty) return;
+  const defaults = [
+    { name: "India Gate", slug: "india-gate", logo: "/Brands/indiagate.png", descEN: "India's most trusted basmati rice brand — premium quality since 1993", descTE: "భారతదేశంలో అత్యంత విశ్వసనీయమైన బాస్మతి బ్రాండ్", categories: ["basmati"], tag: "Premium Basmati", active: true },
+    { name: "Daawat", slug: "daawat", logo: "/Brands/daawat.png", descEN: "Finest aged basmati rice — loved across Indian kitchens", descTE: "ఉత్తమ నాణ్యత గల పాత బాస్మతి బియ్యం", categories: ["basmati"], tag: "Aged Basmati", active: true },
+    { name: "Kohinoor", slug: "kohinoor", logo: "/Brands/kohinoor.png", descEN: "Premium rice collection — basmati and specialty varieties", descTE: "ప్రీమియం బియ్యం సేకరణ — బాస్మతి మరియు ప్రత్యేక రకాలు", categories: ["basmati", "non-basmati"], tag: "Multi-variety", active: true },
+    { name: "Unity", slug: "unity", logo: "/Brands/unity.png", descEN: "Local Visakhapatnam brand — fresh Sona Masoori & millets direct from farms", descTE: "విశాఖపట్నం స్థానిక బ్రాండ్ — తాజా సోనా మసూరి & చిరుధాన్యాలు", categories: ["non-basmati", "millets"], tag: "Local & Fresh", active: true },
+  ];
+  for (const b of defaults) {
+    await addDoc(collection(db, "brands"), { ...b, createdAt: serverTimestamp() });
+  }
+}

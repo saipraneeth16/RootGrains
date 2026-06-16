@@ -6,6 +6,7 @@ import {
   subscribeOrders, updateOrderStatus,
   subscribeProducts, addProduct, updateProduct, deleteProduct, seedProductsIfEmpty,
   getCustomers, getBanners, toggleBanner, seedBannersIfEmpty, addBanner, deleteBanner,
+  subscribeBrands, addBrand, updateBrand, deleteBrand, seedBrandsIfEmpty,
 } from "../services/firestore";
 import { allProducts } from "../data/products";
 
@@ -26,6 +27,7 @@ function Sidebar({ active, setActive, onLogout }) {
     { key: "dashboard", icon: "📊", label: "Dashboard" },
     { key: "orders",    icon: "📦", label: "Orders" },
     { key: "products",  icon: "🌾", label: "Products" },
+    { key: "brands",    icon: "🏷️",  label: "Brands" },
     { key: "customers", icon: "👥", label: "Customers" },
     { key: "banners",   icon: "🖼️",  label: "Banners" },
   ];
@@ -312,8 +314,161 @@ function resizeImage(file, maxDim = 900, quality = 0.8) {
   });
 }
 
-function ProductsView({ products, onAdd, onDelete, onUpdate }) {
-  const emptyForm = { name: "", category: "non-basmati", subCategories: [], stock: "", description: "", imageUrl: "", active: true };
+function BrandsView({ brands, onAdd, onUpdate, onDelete }) {
+  const emptyForm = { name: "", slug: "", descEN: "", descTE: "", categories: [], tag: "", logo: "", active: true };
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState(emptyForm);
+  const [logoPreview, setLogoPreview] = useState("");
+  const [editId, setEditId] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const inp = { width: "100%", padding: "9px 12px", border: "1.5px solid #ddd", borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box", fontFamily: "inherit" };
+  const lbl = { fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4, display: "block" };
+
+  const makeSlug = (name) => name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+
+  const resetForm = () => { setForm(emptyForm); setLogoPreview(""); setEditId(null); };
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const base64 = await resizeImage(file, 600, 0.85);
+    setLogoPreview(base64);
+    setForm(f => ({ ...f, logo: base64 }));
+  };
+
+  const toggleCat = (c) => setForm(f => ({
+    ...f,
+    categories: f.categories.includes(c) ? f.categories.filter(x => x !== c) : [...f.categories, c],
+  }));
+
+  const handleSubmit = async () => {
+    if (!form.name.trim()) return alert("Brand name is required.");
+    if (!form.slug.trim()) return alert("Brand slug is required.");
+    setSaving(true);
+    try {
+      const data = { ...form, name: form.name.trim(), slug: form.slug.trim() };
+      if (editId) { await onUpdate(editId, data); } else { await onAdd(data); }
+      resetForm(); setShowForm(false);
+    } catch (err) { alert("Error: " + err.message); }
+    setSaving(false);
+  };
+
+  const startEdit = (b) => {
+    setForm({ name: b.name || "", slug: b.slug || "", descEN: b.descEN || "", descTE: b.descTE || "", categories: b.categories || [], tag: b.tag || "", logo: b.logo || "", active: b.active !== false });
+    setLogoPreview(b.logo || "");
+    setEditId(b.id);
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: "#3b1f0e" }}>Brands</h2>
+        <button onClick={() => { if (showForm) resetForm(); setShowForm(!showForm); }} style={{ padding: "9px 18px", background: "#3b1f0e", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, cursor: "pointer", fontWeight: 600 }}>{showForm ? "✕ Cancel" : "+ Add Brand"}</button>
+      </div>
+
+      {showForm && (
+        <div style={{ background: "#fff", borderRadius: 12, padding: 24, marginBottom: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: "#3b1f0e" }}>{editId ? "Edit Brand" : "Add New Brand"}</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+
+            <div>
+              <label style={lbl}>Brand Name *</label>
+              <input style={inp} value={form.name} onChange={e => { const n = e.target.value; setForm(f => ({ ...f, name: n, slug: editId ? f.slug : makeSlug(n) })); }} placeholder="e.g. India Gate" />
+            </div>
+            <div>
+              <label style={lbl}>Slug (URL identifier) *</label>
+              <input style={inp} value={form.slug} onChange={e => setForm(f => ({ ...f, slug: makeSlug(e.target.value) }))} placeholder="e.g. india-gate" />
+              <div style={{ fontSize: 11, color: "#aaa", marginTop: 3 }}>Used in URL: /brand/<strong>{form.slug || "slug"}</strong></div>
+            </div>
+            <div>
+              <label style={lbl}>Tag / Tagline</label>
+              <input style={inp} value={form.tag} onChange={e => setForm(f => ({ ...f, tag: e.target.value }))} placeholder="e.g. Premium Basmati" />
+            </div>
+            <div>
+              <label style={lbl}>Visible on Store</label>
+              <select style={inp} value={form.active ? "true" : "false"} onChange={e => setForm(f => ({ ...f, active: e.target.value === "true" }))}>
+                <option value="true">Yes — Show on store</option>
+                <option value="false">No — Hidden</option>
+              </select>
+            </div>
+
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label style={lbl}>Description (English)</label>
+              <textarea style={{ ...inp, resize: "vertical", minHeight: 60 }} value={form.descEN} onChange={e => setForm(f => ({ ...f, descEN: e.target.value }))} placeholder="Brand description in English..." />
+            </div>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label style={lbl}>Description (Telugu)</label>
+              <textarea style={{ ...inp, resize: "vertical", minHeight: 60 }} value={form.descTE} onChange={e => setForm(f => ({ ...f, descTE: e.target.value }))} placeholder="Brand description in Telugu..." />
+            </div>
+
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label style={lbl}>Categories (what this brand sells)</label>
+              <div style={{ display: "flex", gap: 8 }}>
+                {[["non-basmati","Non-Basmati Rice"],["basmati","Basmati Rice"],["millets","Millets"]].map(([key,label]) => {
+                  const active = form.categories.includes(key);
+                  return <button key={key} onClick={() => toggleCat(key)} style={{ padding: "6px 14px", borderRadius: 20, border: `1.5px solid ${active ? "#3b1f0e" : "#ddd"}`, background: active ? "#3b1f0e" : "#fff", color: active ? "#fff" : "#555", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{active ? "✓ " : ""}{label}</button>;
+                })}
+              </div>
+            </div>
+
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label style={lbl}>Brand Logo</label>
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <input style={inp} value={form.logo.startsWith("data:") ? "" : form.logo} onChange={e => { setForm(f => ({ ...f, logo: e.target.value })); setLogoPreview(e.target.value); }} placeholder="Paste logo URL or upload below" />
+                </div>
+                <label style={{ padding: "9px 16px", background: "#e8f5e9", color: "#2e7d32", border: "1.5px dashed #a5d6a7", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+                  📷 Upload Logo
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleLogoUpload} />
+                </label>
+              </div>
+              {logoPreview && (
+                <div style={{ marginTop: 8, position: "relative", display: "inline-block" }}>
+                  <img src={logoPreview} alt="logo preview" style={{ height: 80, borderRadius: 8, objectFit: "contain", background: "#f0ece8", padding: 6 }} onError={() => setLogoPreview("")} />
+                  <button onClick={() => { setLogoPreview(""); setForm(f => ({ ...f, logo: "" })); }} style={{ position: "absolute", top: -6, right: -6, width: 22, height: 22, borderRadius: "50%", background: "#c62828", color: "#fff", border: "none", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+            <button onClick={handleSubmit} disabled={saving} style={{ padding: "10px 24px", background: "#3b1f0e", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, cursor: "pointer", fontWeight: 700 }}>{saving ? "Saving..." : editId ? "Update Brand" : "Add Brand"}</button>
+            <button onClick={() => { resetForm(); setShowForm(false); }} style={{ padding: "10px 18px", background: "#f0ece8", color: "#555", border: "none", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {brands.length === 0 ? (
+        <div style={{ background: "#fff", borderRadius: 12, padding: 40, textAlign: "center", color: "#aaa" }}>No brands yet. Add your first brand above.</div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
+          {brands.map(b => (
+            <div key={b.id} style={{ background: "#fff", borderRadius: 12, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", opacity: b.active === false ? 0.6 : 1 }}>
+              <div style={{ height: 100, background: "#f9f6f2", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+                {b.logo ? <img src={b.logo} alt={b.name} style={{ height: "100%", maxWidth: "100%", objectFit: "contain" }} onError={e => { e.target.style.display = "none"; }} /> : <div style={{ fontSize: 32 }}>🏷️</div>}
+              </div>
+              <div style={{ padding: 14 }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: "#3b1f0e", marginBottom: 2 }}>{b.name}</div>
+                <div style={{ fontSize: 11, color: "#888", marginBottom: 2 }}>/{b.slug}</div>
+                {b.tag && <div style={{ fontSize: 11, padding: "2px 8px", borderRadius: 10, background: "#f0ece8", color: "#3b1f0e", fontWeight: 600, display: "inline-block", marginBottom: 6 }}>{b.tag}</div>}
+                <div style={{ fontSize: 11, color: "#aaa", marginBottom: 10 }}>{(b.categories || []).map(c => c === "basmati" ? "Basmati" : c === "non-basmati" ? "Non-Basmati" : "Millets").join(" · ")}</div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => startEdit(b)} style={{ flex: 1, padding: "6px", background: "#e3f2fd", color: "#1565c0", border: "none", borderRadius: 6, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>✏️ Edit</button>
+                  <button onClick={() => { if (window.confirm(`Delete brand "${b.name}"?`)) onDelete(b.id); }} style={{ flex: 1, padding: "6px", background: "#ffebee", color: "#c62828", border: "none", borderRadius: 6, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>🗑 Delete</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProductsView({ products, brands, onAdd, onDelete, onUpdate }) {
+  const emptyForm = { name: "", category: "non-basmati", subCategories: [], brand: "", stock: "", description: "", imageUrl: "", active: true };
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [variants, setVariants] = useState(defaultVariants("non-basmati"));
@@ -323,7 +478,7 @@ function ProductsView({ products, onAdd, onDelete, onUpdate }) {
   const inp = { width: "100%", padding: "9px 12px", border: "1.5px solid #ddd", borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box", fontFamily: "inherit" };
   const lbl = { fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4, display: "block" };
 
-  const resetForm = () => { setForm(emptyForm); setVariants(defaultVariants("non-basmati")); setPreview(""); setEditId(null); };
+  const resetForm = () => { setForm({ name: "", category: "non-basmati", subCategories: [], brand: "", stock: "", description: "", imageUrl: "", active: true }); setVariants(defaultVariants("non-basmati")); setPreview(""); setEditId(null); };
 
   const handleCategoryChange = (cat) => {
     setForm(f => ({ ...f, category: cat, subCategories: [] }));
@@ -370,6 +525,7 @@ function ProductsView({ products, onAdd, onDelete, onUpdate }) {
       subCategories: form.subCategories,
       // backward compat: keep subCategory as first item
       subCategory: form.subCategories[0] || "",
+      brand: form.brand || "",
       stock: Number(form.stock) || 0,
       description: form.description || "",
       imageUrl: form.imageUrl || "",
@@ -401,6 +557,7 @@ function ProductsView({ products, onAdd, onDelete, onUpdate }) {
       name: p.name || p.nameKey || "",
       category: cat,
       subCategories: p.subCategories || (p.subCategory ? [p.subCategory] : []),
+      brand: p.brand || "",
       stock: p.stock || "",
       description: p.description || "",
       imageUrl: p.imageUrl || p.image || p.img || "",
@@ -441,6 +598,16 @@ function ProductsView({ products, onAdd, onDelete, onUpdate }) {
               </select>
             </div>
 
+            {/* Brand */}
+            <div>
+              <label style={lbl}>Brand</label>
+              <select style={inp} value={form.brand} onChange={e => setForm(f => ({ ...f, brand: e.target.value }))}>
+                <option value="">— No Brand / Independent —</option>
+                {brands.filter(b => b.active !== false).sort((a, b) => a.name.localeCompare(b.name)).map(b => (
+                  <option key={b.id} value={b.slug}>{b.name}</option>
+                ))}
+              </select>
+            </div>
 
             {/* Sub-categories (non-basmati only, multi-select) */}
             {form.category === "non-basmati" && (
@@ -548,6 +715,7 @@ function ProductsView({ products, onAdd, onDelete, onUpdate }) {
             <div style={{ padding: 14 }}>
               <div style={{ fontWeight: 700, fontSize: 14, color: "#3b1f0e", marginBottom: 2 }}>{p.name || p.nameKey}</div>
               <div style={{ fontSize: 12, color: "#888", marginBottom: 4 }}>{p.weight} · Stock: {p.stock ?? "—"}</div>
+              {p.brand && <div style={{ fontSize: 10, padding: "1px 7px", borderRadius: 8, background: "#f0ece8", color: "#3b1f0e", fontWeight: 700, display: "inline-block", marginBottom: 4 }}>🏷️ {brands.find(b => b.slug === p.brand)?.name || p.brand}</div>}
               {p.description && <div style={{ fontSize: 11, color: "#999", marginBottom: 6, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{p.description}</div>}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ fontWeight: 800, fontSize: 15, color: "#e65100" }}>₹{p.price}</div>
@@ -768,6 +936,7 @@ export default function AdminDashboard() {
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [banners, setBanners] = useState([]);
+  const [brands, setBrands] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
@@ -789,7 +958,15 @@ export default function AdminDashboard() {
         setDataLoading(false);
       }
     });
-    return () => { unsub1(); unsub2(); };
+    // Subscribe to brands — seed with defaults if empty
+    const unsub3 = subscribeBrands(async bs => {
+      if (bs.length === 0) {
+        await seedBrandsIfEmpty();
+      } else {
+        setBrands(bs);
+      }
+    });
+    return () => { unsub1(); unsub2(); unsub3(); };
   }, [user]);
 
   // Safety timeout — if still loading after 4s, stop spinner
@@ -806,7 +983,8 @@ export default function AdminDashboard() {
     switch (active) {
       case "dashboard": return <DashboardView orders={orders} products={products} customers={customers} />;
       case "orders":    return <OrdersView orders={orders} onStatusUpdate={updateOrderStatus} />;
-      case "products":  return <ProductsView products={products} onAdd={addProduct} onDelete={deleteProduct} onUpdate={updateProduct} />;
+      case "products":  return <ProductsView products={products} brands={brands} onAdd={addProduct} onDelete={deleteProduct} onUpdate={updateProduct} />;
+      case "brands":    return <BrandsView brands={brands} onAdd={addBrand} onUpdate={updateBrand} onDelete={deleteBrand} />;
       case "customers": return <CustomersView customers={customers} orders={orders} />;
       case "banners":   return <BannersView banners={banners} onToggle={toggleBanner} onAdd={addBanner} onDelete={deleteBanner} />;
       default: return null;
