@@ -1,250 +1,192 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useCallback } from "react";
+import { translateBatch, getCached } from "./services/translate";
 
 export const LanguageContext = createContext();
 
-export const translations = {
-  EN: {
-    profile: "Profile",
-    reorder: "Reorder",
-    notice: "⚠️  Caution: We currently deliver only within Visakhapatnam.",
-    heroTitle: "Pure Grains.\nRooted in Tradition.",
-    heroPara: "From our farms to your table,\ngiving you trust, taste,\nand wholesome nutrition.",
-    shopNow: "SHOP NOW",
-    topBrands: "TOP BRANDS",
-    seeAll: "See All →",
-    shopByCategory: "SHOP BY CATEGORY",
-    basmati: "BASMATI RICE",
-    nonBasmati: "NON BASMATI RICE",
-    millets: "MILLETS",
-    nonBasmatiSection: "NON BASMATI",
-    basmatiSection: "BASMATI RICE",
-    milletsSection: "MILLETS",
-    seeAllProducts: "See All",
-    sonaRaw: "Sona Masoorie Raw Rice",
-    sonaSteam: "Sona Masoorie Steam Rice",
-    basmatiPremium: "Premium Basmati Rice",
-    basmatiAged: "Aged Basmati Rice",
-    foxtailMillet: "Foxtail Millet (Korra)",
-    pearlMillet: "Pearl Millet (Sajja)",
-    fingerMillet: "Finger Millet (Ragi)",
-    littleMillet: "Little Millet (Samalu)",
-    productDetails: "Product Details",
-    addToCart: "Add to Cart",
-    aboutProduct: "About this product",
-    aboutDesc: "Sona Masoori is a medium grain rice known for its soft texture, light aroma and great taste. Perfect for daily cooking.",
-    premiumQuality: "Premium Quality",
-    naturallyAged: "Naturally Aged",
-    pureHygienic: "Pure & Hygienic",
-    type: "Type", variety: "Variety", weight: "Weight",
-    shelfLife: "Shelf Life", storageInstructions: "Storage Instructions",
-    storageValue: "Store in a cool, dry place",
-    shelfLifeValue: "12 Months",
-    rawRice: "Raw Rice", steamRice: "Steam Rice", sonaVariety: "Sona Masoori",
-    basmatiRice: "Basmati Rice", basmatiVariety: "1121 Basmati", basmatiAgedVariety: "Aged 2 Years",
-    milletType: "Millet", foxtailVariety: "Native Variety", pearlVariety: "Native Variety",
-    fingerVariety: "Ragi Variety", littleVariety: "Native Variety",
-    productNotFound: "Product not found", goHome: "Go Home",
-    myCart: "My Cart", items: "items", item: "item",
-    cartEmpty: "Your cart is empty", shopNowBtn: "Shop Now",
-    subtotal: "Subtotal", deliveryFee: "Delivery Fee",
-    free: "FREE", toPay: "To Pay", proceedCheckout: "Proceed to Checkout",
-    searchPlaceholder: "Search for products...",
-    recentSearches: "Recent Searches", popularSearches: "Popular Searches",
-    resultsFor: "Results for", sorry: "Sorry!", notAvailable: "This item is currently not available.",
-    tryAlternatives: "You can try these alternatives",
-    home: "Home", cart: "Cart", searchNav: "Search products...",
-    added: "added", goToCart: "Go to Cart →",
-    // Checkout
-    checkout: "Checkout",
-    deliveryDetails: "Delivery Details",
-    fullName: "Full Name",
-    mobileNumber: "Mobile Number",
-    address: "Delivery Address",
-    city: "City",
-    pincode: "Pincode",
-    deliverySlot: "Choose Delivery Slot",
-    paymentMethod: "Payment Method",
-    cod: "Cash on Delivery",
-    online: "Online Payment",
-    placeOrder: "Place Order",
-    orderSummary: "Order Summary",
-    morning: "Morning (8 AM – 12 PM)",
-    afternoon: "Afternoon (12 PM – 4 PM)",
-    evening: "Evening (4 PM – 8 PM)",
-    // Order tracking
-    orderPlaced: "Order Placed",
-    confirmed: "Confirmed",
-    dispatched: "Dispatched",
-    outForDelivery: "Out for Delivery",
-    delivered: "Delivered",
-    trackOrder: "Track Order",
-    estimatedDelivery: "Estimated Delivery",
-    orderId: "Order ID",
-    orderDate: "Order Date",
-    // Login
-    loginTitle: "Login / Sign Up",
-    enterMobile: "Enter your mobile number",
-    sendOtp: "Send OTP",
-    enterOtp: "Enter OTP",
-    verifyOtp: "Verify OTP",
-    otpSent: "OTP sent to",
-    resendOtp: "Resend OTP",
-    loginWelcome: "Welcome to Root Grains",
-    loginSubtitle: "Login to track orders & save addresses",
-    // Profile
-    myProfile: "My Profile",
-    myOrders: "My Orders",
-    savedAddresses: "Saved Addresses",
-    settings: "Settings",
-    logout: "Logout",
-    language: "Language",
-    notifications: "Notifications",
-    helpSupport: "Help & Support",
-    whatsapp: "Chat on WhatsApp",
-    noOrders: "No orders yet",
-    viewOrder: "View Order",
-    // Admin
-    adminDashboard: "Admin Dashboard",
-    totalOrders: "Total Orders",
-    totalRevenue: "Total Revenue",
-    totalProducts: "Total Products",
-    totalCustomers: "Total Customers",
-    recentOrders: "Recent Orders",
-    manageProducts: "Manage Products",
-    manageOrders: "Manage Orders",
-    manageCustomers: "Manage Customers",
-    manageBanners: "Manage Banners",
-    addProduct: "Add Product",
-    updateStatus: "Update Status",
-    pending: "Pending",
-    processing: "Processing",
-    shipped: "Shipped",
-    allOrders: "All Orders",
-  },
-  TE: {
-    profile: "ప్రొఫైల్",
-    reorder: "రీఆర్డర్",
-    notice: "⚠️  జాగ్రత్త: మేము కేవలం విశాఖపట్నంలో మాత్రమే డెలివరీ చేస్తున్నాం. అన్ని ఆర్డర్లపై ఉచిత డెలివరీ!",
-    heroTitle: "స్వచ్ఛమైన ధాన్యాలు.\nసంప్రదాయంలో మూలాలు.",
-    heroPara: "మా పొలాల నుండి మీ భోజన బల్ల వరకు,\nనమ్మకం, రుచి మరియు\nపూర్తి పోషణ అందిస్తున్నాం.",
-    shopNow: "ఇప్పుడే కొనండి",
-    topBrands: "అగ్రశ్రేణి బ్రాండ్లు",
-    seeAll: "అన్నీ చూడండి →",
-    shopByCategory: "వర్గం ద్వారా కొనండి",
-    basmati: "బాస్మతి బియ్యం",
-    nonBasmati: "నాన్ బాస్మతి బియ్యం",
-    millets: "చిరుధాన్యాలు",
-    nonBasmatiSection: "నాన్ బాస్మతి",
-    basmatiSection: "బాస్మతి బియ్యం",
-    milletsSection: "చిరుధాన్యాలు",
-    seeAllProducts: "అన్నీ చూడండి",
-    sonaRaw: "సోనా మసూరి రా రైస్",
-    sonaSteam: "సోనా మసూరి స్టీమ్ రైస్",
-    basmatiPremium: "ప్రీమియం బాస్మతి బియ్యం",
-    basmatiAged: "పాత బాస్మతి బియ్యం",
-    foxtailMillet: "కొర్రలు",
-    pearlMillet: "సజ్జలు",
-    fingerMillet: "రాగులు",
-    littleMillet: "సామలు",
-    productDetails: "ఉత్పత్తి వివరాలు",
-    addToCart: "కార్ట్‌కు జోడించు",
-    aboutProduct: "ఈ ఉత్పత్తి గురించి",
-    aboutDesc: "సోనా మసూరి మధ్యస్థ గింజల బియ్యం, మృదువైన ఆకృతి, తేలికైన సుగంధం మరియు అద్భుతమైన రుచికి ప్రసిద్ధి. రోజువారీ వంటకు సరైనది.",
-    premiumQuality: "ప్రీమియం నాణ్యత",
-    naturallyAged: "సహజంగా పరిపక్వం",
-    pureHygienic: "స్వచ్ఛమైన & పరిశుభ్రమైన",
-    type: "రకం", variety: "వంగడం", weight: "బరువు",
-    shelfLife: "నిల్వ కాలం", storageInstructions: "నిల్వ సూచనలు",
-    storageValue: "చల్లని, పొడి ప్రదేశంలో నిల్వ చేయండి",
-    shelfLifeValue: "12 నెలలు",
-    rawRice: "రా రైస్", steamRice: "స్టీమ్ రైస్", sonaVariety: "సోనా మసూరి",
-    basmatiRice: "బాస్మతి బియ్యం", basmatiVariety: "1121 బాస్మతి", basmatiAgedVariety: "2 సంవత్సరాల పాత",
-    milletType: "చిరుధాన్యం", foxtailVariety: "స్థానిక రకం", pearlVariety: "స్థానిక రకం",
-    fingerVariety: "రాగి రకం", littleVariety: "స్థానిక రకం",
-    productNotFound: "ఉత్పత్తి కనుగొనబడలేదు", goHome: "హోమ్‌కు వెళ్ళు",
-    myCart: "నా కార్ట్", items: "వస్తువులు", item: "వస్తువు",
-    cartEmpty: "మీ కార్ట్ ఖాళీగా ఉంది", shopNowBtn: "ఇప్పుడే కొనండి",
-    subtotal: "ఉప మొత్తం", deliveryFee: "డెలివరీ రుసుము",
-    free: "ఉచితం", toPay: "చెల్లించాల్సింది", proceedCheckout: "చెక్అవుట్‌కు వెళ్ళు",
-    searchPlaceholder: "ఉత్పత్తులను వెతకండి...",
-    recentSearches: "ఇటీవలి శోధనలు", popularSearches: "జనాదరణ పొందిన శోధనలు",
-    resultsFor: "కోసం ఫలితాలు", sorry: "క్షమించండి!", notAvailable: "ఈ వస్తువు ప్రస్తుతం అందుబాటులో లేదు.",
-    tryAlternatives: "మీరు ఈ ప్రత్యామ్నాయాలను ప్రయత్నించవచ్చు",
-    home: "హోమ్", cart: "కార్ట్", searchNav: "వెతకండి...",
-    added: "జోడించబడింది", goToCart: "కార్ట్‌కు వెళ్ళు →",
-    checkout: "చెక్అవుట్",
-    deliveryDetails: "డెలివరీ వివరాలు",
-    fullName: "పూర్తి పేరు",
-    mobileNumber: "మొబైల్ నంబర్",
-    address: "డెలివరీ చిరునామా",
-    city: "నగరం",
-    pincode: "పిన్‌కోడ్",
-    deliverySlot: "డెలివరీ సమయం ఎంచుకోండి",
-    paymentMethod: "చెల్లింపు పద్ధతి",
-    cod: "క్యాష్ ఆన్ డెలివరీ",
-    online: "ఆన్‌లైన్ చెల్లింపు",
-    placeOrder: "ఆర్డర్ చేయండి",
-    orderSummary: "ఆర్డర్ సారాంశం",
-    morning: "ఉదయం (8 AM – 12 PM)",
-    afternoon: "మధ్యాహ్నం (12 PM – 4 PM)",
-    evening: "సాయంత్రం (4 PM – 8 PM)",
-    orderPlaced: "ఆర్డర్ చేయబడింది",
-    confirmed: "నిర్ధారించబడింది",
-    dispatched: "పంపబడింది",
-    outForDelivery: "డెలివరీకి వెళ్ళింది",
-    delivered: "డెలివరీ అయింది",
-    trackOrder: "ఆర్డర్ ట్రాక్ చేయండి",
-    estimatedDelivery: "అంచనా డెలివరీ",
-    orderId: "ఆర్డర్ ID",
-    orderDate: "ఆర్డర్ తేదీ",
-    loginTitle: "లాగిన్ / సైన్ అప్",
-    enterMobile: "మీ మొబైల్ నంబర్ నమోదు చేయండి",
-    sendOtp: "OTP పంపండి",
-    enterOtp: "OTP నమోదు చేయండి",
-    verifyOtp: "OTP నిర్ధారించండి",
-    otpSent: "OTP పంపబడింది",
-    resendOtp: "OTP మళ్ళీ పంపండి",
-    loginWelcome: "రూట్ గ్రెయిన్స్‌కు స్వాగతం",
-    loginSubtitle: "ఆర్డర్లు ట్రాక్ చేయడానికి లాగిన్ చేయండి",
-    myProfile: "నా ప్రొఫైల్",
-    myOrders: "నా ఆర్డర్లు",
-    savedAddresses: "సేవ్ చేసిన చిరునామాలు",
-    settings: "సెట్టింగ్లు",
-    logout: "లాగ్అవుట్",
-    language: "భాష",
-    notifications: "నోటిఫికేషన్లు",
-    helpSupport: "సహాయం & మద్దతు",
-    whatsapp: "WhatsApp లో చాట్ చేయండి",
-    noOrders: "ఇంకా ఆర్డర్లు లేవు",
-    viewOrder: "ఆర్డర్ చూడండి",
-    adminDashboard: "అడ్మిన్ డాష్‌బోర్డ్",
-    totalOrders: "మొత్తం ఆర్డర్లు",
-    totalRevenue: "మొత్తం ఆదాయం",
-    totalProducts: "మొత్తం ఉత్పత్తులు",
-    totalCustomers: "మొత్తం కస్టమర్లు",
-    recentOrders: "ఇటీవలి ఆర్డర్లు",
-    manageProducts: "ఉత్పత్తులు నిర్వహించండి",
-    manageOrders: "ఆర్డర్లు నిర్వహించండి",
-    manageCustomers: "కస్టమర్లు నిర్వహించండి",
-    manageBanners: "బ్యానర్లు నిర్వహించండి",
-    addProduct: "ఉత్పత్తి జోడించండి",
-    updateStatus: "స్థితి నవీకరించండి",
-    pending: "పెండింగ్",
-    processing: "ప్రాసెసింగ్",
-    shipped: "పంపబడింది",
-    allOrders: "అన్ని ఆర్డర్లు",
-  },
+// ── English strings — only maintain this one list from now on ─────────────────
+// Any new text you add here auto-translates to Telugu on language switch.
+export const EN = {
+  profile: "Profile",
+  reorder: "Reorder",
+  notice: "⚠️  Caution: We currently deliver only within Visakhapatnam.",
+  heroTitle: "Pure Grains.\nRooted in Tradition.",
+  heroPara: "From our farms to your table,\ngiving you trust, taste,\nand wholesome nutrition.",
+  shopNow: "SHOP NOW",
+  topBrands: "TOP BRANDS",
+  seeAll: "See All →",
+  shopByCategory: "SHOP BY CATEGORY",
+  basmati: "BASMATI RICE",
+  nonBasmati: "NON BASMATI RICE",
+  millets: "MILLETS",
+  nonBasmatiSection: "NON BASMATI",
+  basmatiSection: "BASMATI RICE",
+  milletsSection: "MILLETS",
+  seeAllProducts: "See All",
+  sonaRaw: "Sona Masoorie Raw Rice",
+  sonaSteam: "Sona Masoorie Steam Rice",
+  basmatiPremium: "Premium Basmati Rice",
+  basmatiAged: "Aged Basmati Rice",
+  foxtailMillet: "Foxtail Millet (Korra)",
+  pearlMillet: "Pearl Millet (Sajja)",
+  fingerMillet: "Finger Millet (Ragi)",
+  littleMillet: "Little Millet (Samalu)",
+  productDetails: "Product Details",
+  addToCart: "Add to Cart",
+  aboutProduct: "About this product",
+  aboutDesc: "Sona Masoori is a medium grain rice known for its soft texture, light aroma and great taste. Perfect for daily cooking.",
+  premiumQuality: "Premium Quality",
+  naturallyAged: "Naturally Aged",
+  pureHygienic: "Pure & Hygienic",
+  type: "Type", variety: "Variety", weight: "Weight",
+  shelfLife: "Shelf Life", storageInstructions: "Storage Instructions",
+  storageValue: "Store in a cool, dry place",
+  shelfLifeValue: "12 Months",
+  rawRice: "Raw Rice", steamRice: "Steam Rice", sonaVariety: "Sona Masoori",
+  basmatiRice: "Basmati Rice", basmatiVariety: "1121 Basmati", basmatiAgedVariety: "Aged 2 Years",
+  milletType: "Millet", foxtailVariety: "Native Variety", pearlVariety: "Native Variety",
+  fingerVariety: "Ragi Variety", littleVariety: "Native Variety",
+  productNotFound: "Product not found", goHome: "Go Home",
+  myCart: "My Cart", items: "items", item: "item",
+  cartEmpty: "Your cart is empty", shopNowBtn: "Shop Now",
+  subtotal: "Subtotal", deliveryFee: "Delivery Fee",
+  free: "FREE", toPay: "To Pay", proceedCheckout: "Proceed to Checkout",
+  searchPlaceholder: "Search for products...",
+  recentSearches: "Recent Searches", popularSearches: "Popular Searches",
+  resultsFor: "Results for", sorry: "Sorry!", notAvailable: "This item is currently not available.",
+  tryAlternatives: "You can try these alternatives",
+  home: "Home", cart: "Cart", searchNav: "Search products...",
+  added: "added", goToCart: "Go to Cart →",
+  checkout: "Checkout",
+  deliveryDetails: "Delivery Details",
+  fullName: "Full Name",
+  mobileNumber: "Mobile Number",
+  address: "Delivery Address",
+  city: "City",
+  pincode: "Pincode",
+  deliverySlot: "Choose Delivery Slot",
+  paymentMethod: "Payment Method",
+  cod: "Cash on Delivery",
+  online: "Online Payment",
+  placeOrder: "Place Order",
+  orderSummary: "Order Summary",
+  morning: "Morning (8 AM – 12 PM)",
+  afternoon: "Afternoon (12 PM – 4 PM)",
+  evening: "Evening (4 PM – 8 PM)",
+  orderPlaced: "Order Placed",
+  confirmed: "Confirmed",
+  dispatched: "Dispatched",
+  outForDelivery: "Out for Delivery",
+  delivered: "Delivered",
+  trackOrder: "Track Order",
+  estimatedDelivery: "Estimated Delivery",
+  orderId: "Order ID",
+  orderDate: "Order Date",
+  loginTitle: "Login / Sign Up",
+  enterMobile: "Enter your mobile number",
+  sendOtp: "Send OTP",
+  enterOtp: "Enter OTP",
+  verifyOtp: "Verify OTP",
+  otpSent: "OTP sent to",
+  resendOtp: "Resend OTP",
+  loginWelcome: "Welcome to Root Grains",
+  loginSubtitle: "Login to track orders & save addresses",
+  myProfile: "My Profile",
+  myOrders: "My Orders",
+  savedAddresses: "Saved Addresses",
+  settings: "Settings",
+  logout: "Logout",
+  language: "Language",
+  notifications: "Notifications",
+  helpSupport: "Help & Support",
+  whatsapp: "Chat on WhatsApp",
+  noOrders: "No orders yet",
+  viewOrder: "View Order",
+  adminDashboard: "Admin Dashboard",
+  totalOrders: "Total Orders",
+  totalRevenue: "Total Revenue",
+  totalProducts: "Total Products",
+  totalCustomers: "Total Customers",
+  recentOrders: "Recent Orders",
+  manageProducts: "Manage Products",
+  manageOrders: "Manage Orders",
+  manageCustomers: "Manage Customers",
+  manageBanners: "Manage Banners",
+  addProduct: "Add Product",
+  updateStatus: "Update Status",
+  pending: "Pending",
+  processing: "Processing",
+  shipped: "Shipped",
+  allOrders: "All Orders",
 };
+
+// Build a translated `t` object by mapping each EN value → Telugu translation
+function buildTeluguT(teMap) {
+  return Object.fromEntries(
+    Object.entries(EN).map(([key, val]) => [
+      key,
+      typeof val === "string" ? (teMap[val] || val) : val,
+    ])
+  );
+}
+
+// Pre-load already-cached Telugu strings so first render is instant
+function loadCachedTeMap() {
+  const map = {};
+  for (const [, val] of Object.entries(EN)) {
+    if (typeof val !== "string") continue;
+    const cached = getCached(val, "te");
+    if (cached) map[val] = cached;
+  }
+  return map;
+}
 
 export function LanguageProvider({ children }) {
   const [lang, setLang] = useState("EN");
-  const toggleLang = () => setLang(l => (l === "EN" ? "TE" : "EN"));
-  const t = translations[lang];
+  const [teMap, setTeMap] = useState(loadCachedTeMap);
+  const [translating, setTranslating] = useState(false);
+
+  const toggleLang = useCallback(async () => {
+    if (lang === "TE") {
+      setLang("EN");
+      return;
+    }
+
+    // Switch to Telugu — translate any strings not yet cached
+    setLang("TE");
+
+    const enValues = Object.values(EN).filter(v => typeof v === "string");
+    const uncached = enValues.filter(v => !getCached(v, "te"));
+
+    if (uncached.length === 0) return; // all already cached, instant switch
+
+    setTranslating(true);
+    try {
+      await translateBatch(uncached, "te");
+      setTeMap(loadCachedTeMap()); // refresh from updated cache
+    } catch {}
+    setTranslating(false);
+  }, [lang]);
+
+  const t = lang === "EN" ? EN : buildTeluguT(teMap);
+
   return (
-    <LanguageContext.Provider value={{ lang, toggleLang, t }}>
+    <LanguageContext.Provider value={{ lang, toggleLang, t, translating }}>
+      {translating && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, zIndex: 99999,
+          background: "var(--brown-dark)", color: "#f5e6c8",
+          padding: "8px 16px", fontSize: "12px", fontWeight: 600,
+          textAlign: "center", letterSpacing: "0.5px",
+        }}>
+          Translating to Telugu...
+        </div>
+      )}
       {children}
     </LanguageContext.Provider>
   );
 }
 
 export function useLang() { return useContext(LanguageContext); }
+
+// Kept for backward compatibility — any import of `translations` still works
+export const translations = { EN };
