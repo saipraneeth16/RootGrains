@@ -19,15 +19,30 @@ export function OffersProvider({ children }) {
     return unsub;
   }, []);
 
-  // Returns the best applicable discount for a product, or null
-  // Matches: "all", category slug (e.g. "basmati"), or brand slug (e.g. "india-gate")
+  const CATEGORIES = ["all", "basmati", "non-basmati", "millets"];
+
+  // Returns the best applicable discount for a product, or null.
+  // Supports two filter modes:
+  //   New: applyToCategory + applyToBrand (both must match — intersection)
+  //   Old: applyTo single value (backward compat)
   const getDiscount = (product) => {
     if (!product || activeOffers.length === 0) return null;
-    const applicable = activeOffers.filter(o =>
-      o.applyTo === "all" ||
-      o.applyTo === product.category ||
-      (product.brand && o.applyTo === product.brand)
-    );
+    const applicable = activeOffers.filter(o => {
+      // New compound filter
+      if (o.applyToCategory !== undefined || o.applyToBrand !== undefined) {
+        const cat = o.applyToCategory || "all";
+        const brand = o.applyToBrand || "all";
+        const catMatch = cat === "all" || cat === product.category;
+        const brandMatch = brand === "all" || (product.brand && brand === product.brand);
+        return catMatch && brandMatch;
+      }
+      // Legacy single applyTo field
+      return (
+        o.applyTo === "all" ||
+        o.applyTo === product.category ||
+        (product.brand && o.applyTo === product.brand)
+      );
+    });
     if (applicable.length === 0) return null;
     // Pick the highest discount
     const best = [...applicable].sort((a, b) => b.discountPercent - a.discountPercent)[0];

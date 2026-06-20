@@ -873,7 +873,7 @@ function CustomersView({ customers, orders }) {
 }
 
 function BannersView({ banners, brands, onToggle, onAdd, onDelete }) {
-  const emptyForm = { title: "", type: "Offer", discountText: "", discountPercent: "", applyTo: "all", bgColor: "#fff8e1", link: "", image: "" };
+  const emptyForm = { title: "", type: "Offer", discountText: "", discountPercent: "", applyToCategory: "all", applyToBrand: "all", bgColor: "#fff8e1", link: "", image: "" };
   const [form, setForm] = useState(emptyForm);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -927,35 +927,52 @@ function BannersView({ banners, brands, onToggle, onAdd, onDelete }) {
               </select></div>
           </div>
 
-          {/* Row 2: Discount % + Applies to */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-            <div>
-              <label style={lbl}>Discount % (affects product prices)</label>
-              <input style={inp} type="number" min="0" max="90" value={form.discountPercent}
-                onChange={e => setForm(f => ({ ...f, discountPercent: Number(e.target.value) || "" }))}
-                placeholder="e.g. 20 for 20% off" />
-            </div>
-            <div>
-              <label style={lbl}>Applies To</label>
-              <select style={inp} value={form.applyTo} onChange={e => setForm(f => ({ ...f, applyTo: e.target.value }))}>
-                <option value="all">🛒 All Products</option>
-                <optgroup label="── By Category ──">
+          {/* Row 2: Discount % */}
+          <div style={{ marginBottom: 12 }}>
+            <label style={lbl}>Discount % (affects product prices)</label>
+            <input style={{ ...inp, maxWidth: 220 }} type="number" min="0" max="90" value={form.discountPercent}
+              onChange={e => setForm(f => ({ ...f, discountPercent: Number(e.target.value) || "" }))}
+              placeholder="e.g. 20 for 20% off" />
+          </div>
+
+          {/* Row 2b: Two intersecting filters */}
+          <div style={{ background: "#f9f6f2", border: "1.5px solid #e8e0d8", borderRadius: 10, padding: "14px 16px", marginBottom: 12 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: "#3b1f0e", marginBottom: 10 }}>
+              📌 Applies To — combine category + brand (both must match)
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div>
+                <label style={lbl}>Category</label>
+                <select style={inp} value={form.applyToCategory} onChange={e => setForm(f => ({ ...f, applyToCategory: e.target.value }))}>
+                  <option value="all">All Categories</option>
                   <option value="basmati">Basmati Rice</option>
                   <option value="non-basmati">Non-Basmati Rice</option>
                   <option value="millets">Millets</option>
-                </optgroup>
-                {brands.filter(b => b.active !== false).length > 0 && (
-                  <optgroup label="── By Brand ──">
-                    {brands
-                      .filter(b => b.active !== false)
-                      .sort((a, b) => a.name.localeCompare(b.name))
-                      .map(b => (
-                        <option key={b.id} value={b.slug}>{b.name}</option>
-                      ))}
-                  </optgroup>
-                )}
-              </select>
+                </select>
+              </div>
+              <div>
+                <label style={lbl}>Brand</label>
+                <select style={inp} value={form.applyToBrand} onChange={e => setForm(f => ({ ...f, applyToBrand: e.target.value }))}>
+                  <option value="all">Any Brand</option>
+                  {brands
+                    .filter(b => b.active !== false)
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map(b => (
+                      <option key={b.id} value={b.slug}>{b.name}</option>
+                    ))}
+                </select>
+              </div>
             </div>
+            {/* Live preview of what the combination means */}
+            <p style={{ fontSize: 11, color: "#888", marginTop: 8 }}>
+              {form.applyToCategory === "all" && form.applyToBrand === "all"
+                ? "→ Applies to all products"
+                : form.applyToCategory === "all"
+                  ? `→ Applies to all ${brands.find(b => b.slug === form.applyToBrand)?.name || form.applyToBrand} products`
+                  : form.applyToBrand === "all"
+                    ? `→ Applies to all ${form.applyToCategory} products`
+                    : `→ Applies only to ${form.applyToCategory} products from ${brands.find(b => b.slug === form.applyToBrand)?.name || form.applyToBrand}`}
+            </p>
           </div>
 
           {/* Row 3: Discount text label + BG color */}
@@ -1025,16 +1042,32 @@ function BannersView({ banners, brands, onToggle, onAdd, onDelete }) {
               <div style={{ fontWeight: 700, fontSize: 13 }}>{b.title}</div>
               <div style={{ display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 10, background: "#f0ece8", color: "#3b1f0e", fontWeight: 600 }}>{b.type}</span>
-                {b.discountPercent > 0 && (
-                  <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 10, background: "#ffebee", color: "#c62828", fontWeight: 800 }}>
-                    {b.discountPercent}% OFF ·{" "}
-                    {b.applyTo === "all"
-                      ? "All products"
-                      : ["basmati","non-basmati","millets"].includes(b.applyTo)
-                        ? b.applyTo
-                        : (brands.find(br => br.slug === b.applyTo)?.name || b.applyTo)}
-                  </span>
-                )}
+                {b.discountPercent > 0 && (() => {
+                  // Build a human-readable scope label
+                  let scope = "";
+                  if (b.applyToCategory !== undefined || b.applyToBrand !== undefined) {
+                    // New compound format
+                    const cat = b.applyToCategory || "all";
+                    const brand = b.applyToBrand || "all";
+                    const catLabel = cat === "all" ? null : cat;
+                    const brandLabel = brand === "all" ? null : (brands.find(br => br.slug === brand)?.name || brand);
+                    if (!catLabel && !brandLabel) scope = "All products";
+                    else if (!catLabel) scope = brandLabel;
+                    else if (!brandLabel) scope = catLabel;
+                    else scope = `${catLabel} · ${brandLabel}`;
+                  } else {
+                    // Legacy applyTo
+                    const applyTo = b.applyTo || "all";
+                    scope = applyTo === "all" ? "All products"
+                      : ["basmati","non-basmati","millets"].includes(applyTo) ? applyTo
+                      : (brands.find(br => br.slug === applyTo)?.name || applyTo);
+                  }
+                  return (
+                    <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 10, background: "#ffebee", color: "#c62828", fontWeight: 800 }}>
+                      {b.discountPercent}% OFF · {scope}
+                    </span>
+                  );
+                })()}
                 {b.discountText && !b.discountPercent && <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 10, background: "#fff3cd", color: "#856404", fontWeight: 700 }}>{b.discountText}</span>}
                 {b.image && <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 10, background: "#e8f5e9", color: "#2e7d32", fontWeight: 600 }}>🖼 Has image</span>}
               </div>
