@@ -107,6 +107,12 @@ export async function getBanners() {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
+export function subscribeBanners(callback) {
+  return onSnapshot(collection(db, "banners"), snap =>
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+  );
+}
+
 export async function toggleBanner(id, active) {
   await updateDoc(doc(db, "banners", id), { active });
 }
