@@ -23,14 +23,24 @@ function Hero() {
       .then(all => {
         const bannerSlides = all
           .filter(b => b.active && b.image)
-          .map(b => ({
-            img: b.image,
-            label: b.title,
-            discountText: b.discountText || "",
-            link: b.link || "",
-            bgColor: b.bgColor || "",
-            type: "banner",
-          }));
+          .map(b => {
+            // Auto-derive shop link from category/brand filters
+            const cat = b.applyToCategory;
+            const brand = b.applyToBrand;
+            const cats = ["basmati", "non-basmati", "millets"];
+            let link = "/search";
+            if (cat && cat !== "all") link = `/category/${cat}`;
+            else if (brand && brand !== "all") link = `/brand/${brand}`;
+            else if (b.applyTo && b.applyTo !== "all")
+              link = cats.includes(b.applyTo) ? `/category/${b.applyTo}` : `/brand/${b.applyTo}`;
+            return {
+              img: b.image,
+              label: b.title,
+              discountText: b.discountText || "",
+              link,
+              type: "banner",
+            };
+          });
         // Interleave banner slides after the first default slide
         if (bannerSlides.length > 0) {
           setSlides([DEFAULT_SLIDES[0], ...bannerSlides, ...DEFAULT_SLIDES.slice(1)]);
@@ -106,7 +116,7 @@ function Hero() {
             </h2>
             <button
               className="primary"
-              onClick={() => slide.link ? navigate(slide.link) : navigate("/search")}
+              onClick={() => navigate(slide.link || "/search")}
               style={{ alignSelf: "flex-start" }}
             >
               Shop Now

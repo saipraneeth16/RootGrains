@@ -873,7 +873,7 @@ function CustomersView({ customers, orders }) {
 }
 
 function BannersView({ banners, brands, onToggle, onAdd, onDelete }) {
-  const emptyForm = { title: "", type: "Offer", discountText: "", discountPercent: "", applyToCategory: "all", applyToBrand: "all", bgColor: "#fff8e1", link: "", image: "" };
+  const emptyForm = { title: "", type: "Offer", discountText: "", discountPercent: "", applyToCategory: "all", applyToBrand: "all", bgColor: "#fff8e1", image: "" };
   const [form, setForm] = useState(emptyForm);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -986,12 +986,6 @@ function BannersView({ banners, brands, onToggle, onAdd, onDelete }) {
                 <span style={{ fontSize: 12, color: "#888" }}>{form.bgColor}</span>
               </div>
             </div>
-          </div>
-
-          {/* Row 4: Link path */}
-          <div style={{ marginBottom: 12 }}>
-            <label style={lbl}>Shop Link (optional)</label>
-            <input style={inp} value={form.link} onChange={e => setForm(f => ({ ...f, link: e.target.value }))} placeholder="e.g. /search or /category/basmati" />
           </div>
 
           {/* Row 4: Image upload */}
