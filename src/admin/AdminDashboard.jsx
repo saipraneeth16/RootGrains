@@ -1134,14 +1134,8 @@ export default function AdminDashboard() {
         setBrands(bs);
       }
     });
-    // Subscribe to banners — seed defaults if empty
-    const unsub4 = subscribeBanners(async bs => {
-      if (bs.length === 0) {
-        await seedBannersIfEmpty();
-      } else {
-        setBanners(bs);
-      }
-    });
+    // Subscribe to banners — always reflect real state, never auto-seed
+    const unsub4 = subscribeBanners(bs => setBanners(bs));
     return () => { unsub1(); unsub2(); unsub3(); unsub4(); };
   }, [user]);
 
